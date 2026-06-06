@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>다인 컷인 에디터 헬퍼 v4</title>
+    <title>다인 컷인 에디터 헬퍼 v5</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <style>
         :root {
@@ -34,43 +34,39 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* 공통 폼 스타일 */
-        .controls {
-            padding: 18px; background: var(--bg); border-radius: 10px; border: 1px solid #e2e8f0;
-            display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px;
-        }
-        .input-group { display: flex; align-items: center; gap: 8px; }
-        input[type="number"], input[type="text"] {
-            width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace;
-        }
-        input[type="color"] {
-            width: 40px; height: 38px; padding: 2px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer;
-        }
-        input[type="file"] { border: 1px dashed #cbd5e1; padding: 5px; border-radius: 4px; background: #fff; width: 100%; box-sizing: border-box; }
-        .help-text { width: 100%; font-size: 13px; color: #64748b; margin: 0; line-height: 1.4; }
+        /* 좌우 분할 레이아웃 (모든 탭 공통) */
+        .split-layout { display: flex; gap: 25px; align-items: stretch; margin-top: 10px; }
         
-        /* 좌우 분할 레이아웃 (탭 1, 탭 2 공통 적용) */
-        .split-layout { display: flex; gap: 25px; align-items: flex-start; margin-top: 10px; }
+        /* 캔버스(미리보기) 영역 */
         .split-left {
-            flex: 0 0 450px; height: 450px; background-color: #f1f5f9;
-            border-radius: 10px; overflow: hidden; border: 2px dashed #cbd5e1; position: relative;
+            flex: 0 0 500px; height: 500px; background-color: #e2e8f0;
+            border-radius: 10px; overflow: hidden; border: 2px dashed #cbd5e1;
+            display: flex; align-items: center; justify-content: center;
         }
+        .split-left img { max-width: 100%; max-height: 100%; display: block; }
+        
+        /* 설정창 영역 */
         .split-right {
-            flex: 1; display: flex; flex-direction: column; gap: 15px;
-            background: var(--bg); padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; min-height: 450px; box-sizing: border-box;
+            flex: 1; display: flex; flex-direction: column; gap: 18px;
+            background: var(--bg); padding: 25px; border-radius: 10px; border: 1px solid #e2e8f0;
         }
 
-        /* 탭 3용 기존 이미지 컨테이너 */
-        .img-container {
-            width: 100%; height: 500px; background-color: #f1f5f9;
-            border-radius: 10px; overflow: hidden; border: 2px dashed #cbd5e1; position: relative;
+        /* 폼 요소 스타일 */
+        .input-group { display: flex; align-items: center; gap: 8px; }
+        input[type="number"], input[type="text"] {
+            width: 80px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; font-size: 14px;
         }
-        img { max-width: 100%; display: block; }
+        input[type="color"] {
+            width: 45px; height: 42px; padding: 2px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer;
+        }
+        input[type="file"] { border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #fff; width: 100%; box-sizing: border-box; }
+        .help-text { width: 100%; font-size: 13.5px; color: #475569; margin: 0; line-height: 1.5; }
+        label { font-weight: bold; font-size: 14px; color: #1e293b; }
         
         /* 버튼 및 슬라이더 */
         .action-btn {
             display: block; width: 100%; background-color: var(--primary); color: white; border: none;
-            padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600;
+            padding: 16px; border-radius: 8px; font-size: 16px; font-weight: 700;
             cursor: pointer; transition: background 0.2s; margin-top: auto;
         }
         .action-btn:hover { background-color: var(--primary-hover); }
@@ -78,151 +74,151 @@
 
         .btn-row { display: flex; gap: 10px; width: 100%; }
         .sub-btn {
-            flex: 1; background-color: #e2e8f0; color: #334155; border: none; padding: 8px;
+            flex: 1; background-color: #e2e8f0; color: #334155; border: none; padding: 10px;
             border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;
         }
         .sub-btn:hover { background-color: #cbd5e1; }
-
         input[type="range"] { flex: 1; cursor: pointer; }
+        .file-count { font-size: 14px; font-weight: bold; color: var(--primary); }
 
-        /* 가이드라인 SVG 레이어 */
-        .guide-svg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 999; opacity: 0.6; display: block;
-        }
-        .file-count { font-size: 13px; font-weight: bold; color: #2563eb; margin-top: 5px; }
+        /* 미리보기를 캔버스처럼 보이게 하는 Cropper.js 커스텀 설정 */
+        .cropper-view-box { outline: 2px solid var(--primary); outline-color: rgba(37, 99, 235, 0.8); }
+        .cropper-point, .cropper-line { display: none !important; } /* 조절점과 선을 숨겨 프레임처럼 연출 */
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🎨 다인 컷인 에디터 헬퍼 v4</h2>
+    <h2>🎨 다인 컷인 에디터 헬퍼 v5</h2>
     
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-headshot')">1. 두상 크롭 (단일)</button>
-        <button class="tab-btn" onclick="switchTab('tab-portrait')">2. 포트레이트 크롭 (일괄 동기화)</button>
-        <button class="tab-btn" onclick="switchTab('tab-cutin')">3. 컷인 크롭 (셀프 배경)</button>
+        <button class="tab-btn active" onclick="switchTab('tab-headshot')">1. 두상 크롭</button>
+        <button class="tab-btn" onclick="switchTab('tab-portrait')">2. 포트레이트 크롭 (동기화)</button>
+        <button class="tab-btn" onclick="switchTab('tab-cutin')">3. 컷인 크롭</button>
     </div>
 
     <div id="tab-headshot" class="tab-content active">
         <div class="split-layout">
-            <div class="split-left">
-                <img id="imgHeadshot">
-            </div>
-            
+            <div class="split-left"><img id="imgHeadshot"></div>
             <div class="split-right">
                 <div>
-                    <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px;">1. 이미지 불러오기</label>
+                    <label style="display: block; margin-bottom: 8px;">1. 이미지 불러오기 (단일)</label>
                     <input type="file" id="fileHeadshot" accept="image/*">
                 </div>
-                
                 <div>
-                    <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px;">2. 단색 배경 설정</label>
+                    <label style="display: block; margin-bottom: 8px;">2. 배경색 채우기 (여백 발생 시)</label>
                     <div class="input-group">
                         <input type="color" id="headshotColorPicker" value="#ffffff">
                         <input type="text" id="headshotHexInput" value="#ffffff" maxlength="7">
                     </div>
                 </div>
-
-                <div class="input-group">
-                    <input type="checkbox" id="toggleHeadshotGuide" checked>
-                    <label for="toggleHeadshotGuide" style="font-weight: 600; cursor: pointer; font-size: 14px;">원형 + 두상 가이드라인 보기</label>
+                <div style="background: #e2e8f0; padding: 15px; border-radius: 8px;">
+                    <p class="help-text"><strong>💡 조작 가이드</strong><br>
+                    • 마우스 드래그: 이미지 위치 이동<br>
+                    • 마우스 휠: 이미지 확대 / 축소<br>
+                    (파란색 프레임 영역이 실제 저장되는 캔버스 크기입니다.)</p>
                 </div>
-
-                <div style="background: #e2e8f0; padding: 12px; border-radius: 6px; margin-top: 5px;">
-                    <p class="help-text"><strong>💡 조작 방법:</strong><br>
-                    • 마우스 드래그: 이미지 이동<br>
-                    • 마우스 휠: 이미지 확대 / 축소</p>
-                </div>
-
-                <button id="btnCropHeadshot" class="action-btn" style="display:none;">두상 이미지 다운로드</button>
+                <button id="btnCropHeadshot" class="action-btn" style="display:none;">1:1 두상 다운로드</button>
             </div>
         </div>
     </div>
 
     <div id="tab-portrait" class="tab-content">
         <div class="split-layout">
-            <div class="split-left">
-                <img id="imgPortrait">
-            </div>
-            
+            <div class="split-left"><img id="imgPortrait"></div>
             <div class="split-right">
                 <div>
-                    <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px;">1. 여러 파일 불러오기 (표정 다중 선택)</label>
+                    <label style="display: block; margin-bottom: 8px;">1. 여러 파일 불러오기</label>
                     <input type="file" id="filePortrait" accept="image/*" multiple>
-                    <div id="portraitFileCount" class="file-count">선택된 파일: 없음</div>
+                    <div id="portraitFileCount" class="file-count" style="margin-top: 8px;">선택된 파일: 없음</div>
                 </div>
-                
+                <div class="input-group">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px;">캔버스 가로 (px)</label>
+                        <input type="number" id="portraitW" value="460">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px;">캔버스 세로 (px)</label>
+                        <input type="number" id="portraitH" value="800">
+                    </div>
+                </div>
                 <div>
-                    <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px;">2. 그림 회전 조절</label>
+                    <label style="display: block; margin-bottom: 8px;">회전 각도 조절</label>
                     <div class="input-group" style="width: 100%;">
                         <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
                         <span id="rotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
                     </div>
-                    <div class="btn-row" style="margin-top: 8px;">
+                    <div class="btn-row" style="margin-top: 10px;">
                         <button class="sub-btn" onclick="rotatePortrait(-90)">↺ -90°</button>
                         <button class="sub-btn" onclick="rotatePortrait(90)">↻ +90°</button>
-                        <button class="sub-btn" onclick="resetPortraitTransform()">🔄 정렬 초기화</button>
+                        <button class="sub-btn" onclick="resetPortraitTransform()">🔄 초기화</button>
                     </div>
                 </div>
-
-                <div class="input-group">
-                    <input type="checkbox" id="togglePortraitGuide" checked>
-                    <label for="togglePortraitGuide" style="font-weight: 600; cursor: pointer; font-size: 14px;">원형 + 두상 가이드라인 보기</label>
+                <div style="background: #e2e8f0; padding: 15px; border-radius: 8px;">
+                    <p class="help-text"><strong>💡 일괄 동기화 시스템</strong><br>
+                    현재 화면에서 맞춘 위치, 크기, 회전값이 업로드한 **모든 이미지에 똑같이 적용**되어 투명 PNG로 일괄 추출됩니다.</p>
                 </div>
-
-                <div style="background: #e2e8f0; padding: 12px; border-radius: 6px;">
-                    <p class="help-text"><strong>💡 일괄 동기화 시스템:</strong><br>
-                    첫 번째 파일로 위치(드래그), 크기(휠), 회전(슬라이더)을 잡으면 선택된 모든 파일이 **동일한 값으로 크롭**되어 배경 투명 PNG 압축팩(ZIP)으로 저장됩니다.</p>
-                </div>
-
-                <button id="btnCropPortrait" class="action-btn" style="display:none;">전체 크롭 및 투명 PNG 다운로드 (ZIP)</button>
+                <button id="btnCropPortrait" class="action-btn" style="display:none;">모두 자르기 & ZIP 다운로드</button>
             </div>
         </div>
     </div>
 
     <div id="tab-cutin" class="tab-content">
-        <div class="controls">
-            <input type="file" id="fileCutin" accept="image/*" style="width: auto;">
-            <div class="input-group">
-                <label>캔버스 가로:</label>
-                <input type="number" id="canvasW" value="1200">
+        <div class="split-layout">
+            <div class="split-left"><img id="imgCutin"></div>
+            <div class="split-right">
+                <div>
+                    <label style="display: block; margin-bottom: 8px;">1. 이미지 불러오기</label>
+                    <input type="file" id="fileCutin" accept="image/*">
+                </div>
+                <div class="input-group">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px;">캔버스 가로 (px)</label>
+                        <input type="number" id="cutinW" value="1200">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px;">캔버스 세로 (px)</label>
+                        <input type="number" id="cutinH" value="400">
+                    </div>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px;">배경색 설정 (여백)</label>
+                    <div class="input-group">
+                        <input type="color" id="cutinColorPicker" value="#ffffff">
+                        <input type="text" id="cutinHexInput" value="#ffffff" maxlength="7">
+                    </div>
+                </div>
+                <div style="background: #e2e8f0; padding: 15px; border-radius: 8px;">
+                    <p class="help-text">설정한 가로/세로 비율에 맞춰 프레임이 생성됩니다. 캐릭터를 배치하면 남는 여백은 설정한 배경색으로 채워집니다.</p>
+                </div>
+                <button id="btnCropCutin" class="action-btn" style="display:none;">컷인 이미지 다운로드</button>
             </div>
-            <div class="input-group">
-                <label>캔버스 세로:</label>
-                <input type="number" id="canvasH" value="400">
-            </div>
-            <div class="input-group">
-                <label>배경색:</label>
-                <input type="color" id="bgColor" value="#ffffff">
-            </div>
-            <p class="help-text" style="margin-top: 10px;">캔버스 크기를 직접 설정하고 자유롭게 배치하여 긴 컷인 이미지를 만듭니다.</p>
         </div>
-        <div class="img-container">
-            <img id="imgCutin">
-        </div>
-        <button id="btnCropCutin" class="action-btn" style="max-width: 300px; margin: 20px auto 0; display:none;">컷인 생성 및 다운로드</button>
     </div>
 </div>
-
-<template id="guide-tpl">
-    <svg class="guide-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <circle cx="50" cy="50" r="48" fill="none" stroke="#2563eb" stroke-width="1.2" stroke-dasharray="3"/>
-        <line x1="50" y1="0" x2="50" y2="100" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.6"/>
-        <line x1="0" y1="50" x2="100" y2="50" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.6"/>
-        <ellipse cx="50" cy="42" rx="18" ry="22" fill="none" stroke="#ff0044" stroke-width="1" stroke-dasharray="3"/>
-        <path d="M 24 100 Q 24 78 50 78 Q 76 78 76 100" fill="none" stroke="#ff0044" stroke-width="1" stroke-dasharray="3"/>
-    </svg>
-</template>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
+    // ----------------------------------------------------
+    // 공통 초기화 및 유틸 설정
+    // ----------------------------------------------------
     let cropperHeadshot, cropperPortrait, cropperCutin;
-    let portraitFiles = []; // 탭 2 다중 파일 저장소
+    let portraitFiles = []; 
 
-    // 탭 전환 함수
+    // 미리보기를 캔버스처럼 쓰기 위한 Cropper.js 공통 옵션
+    const baseCropperOptions = {
+        viewMode: 0,
+        dragMode: 'move', // 마우스로 이미지를 이동
+        autoCropArea: 1,  // 컨테이너 크기에 꽉 차게 프레임 고정
+        cropBoxMovable: false, // 프레임 자체 이동 불가
+        cropBoxResizable: false, // 프레임 크기 조절 불가
+        toggleDragModeOnDblclick: false,
+        guides: false, // 3x3 격자선 제거 (캔버스 느낌 강조)
+        center: true   // 중앙 십자선만 유지
+    };
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -231,236 +227,16 @@
         if(tabBtn) tabBtn.classList.add('active');
     }
 
-    // ==========================================
-    // 1. 두상 크롭 로직
-    // ==========================================
-    const imgHeadshot = document.getElementById('imgHeadshot');
-    const btnCropHeadshot = document.getElementById('btnCropHeadshot');
-    const headshotColorPicker = document.getElementById('headshotColorPicker');
-    const headshotHexInput = document.getElementById('headshotHexInput');
-    const toggleHeadshotGuide = document.getElementById('toggleHeadshotGuide');
-
-    headshotColorPicker.addEventListener('input', (e) => { headshotHexInput.value = e.target.value; });
-    headshotHexInput.addEventListener('input', (e) => {
-        let val = e.target.value;
-        if (!val.startsWith('#')) { val = '#' + val; e.target.value = val; }
-        if (/^#[0-9A-F]{6}$/i.test(val)) { headshotColorPicker.value = val; }
-    });
-
-    document.getElementById('fileHeadshot').addEventListener('change', function(e) {
-        if (!e.target.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            imgHeadshot.src = ev.target.result;
-            btnCropHeadshot.style.display = 'block';
-            if (cropperHeadshot) cropperHeadshot.destroy();
-            
-            cropperHeadshot = new Cropper(imgHeadshot, { 
-                aspectRatio: 1, viewMode: 0, dragMode: 'move', autoCropArea: 1,
-                cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false,
-                ready() {
-                    const viewBox = document.querySelector('#tab-headshot .cropper-view-box');
-                    if (viewBox && !viewBox.querySelector('.guide-svg')) {
-                        const tpl = document.getElementById('guide-tpl').content.cloneNode(true);
-                        viewBox.appendChild(tpl);
-                        updateHeadshotGuide();
-                    }
-                }
-            });
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
-
-    toggleHeadshotGuide.addEventListener('change', updateHeadshotGuide);
-    function updateHeadshotGuide() {
-        const svg = document.querySelector('#tab-headshot .guide-svg');
-        if (svg) svg.style.display = toggleHeadshotGuide.checked ? 'block' : 'none';
-    }
-
-    btnCropHeadshot.addEventListener('click', () => {
-        if (!cropperHeadshot) return;
-        const canvas = cropperHeadshot.getCroppedCanvas({
-            fillColor: headshotHexInput.value,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high',
-        });
-        canvas.toBlob(blob => downloadBlob(blob, 'headshot.png'));
-    });
-
-
-    // ==========================================
-    // 2. 포트레이트 일괄 크롭 로직 (핵심 수정파트)
-    // ==========================================
-    const imgPortrait = document.getElementById('imgPortrait');
-    const btnCropPortrait = document.getElementById('btnCropPortrait');
-    const portraitRotateSlider = document.getElementById('portraitRotateSlider');
-    const rotateValue = document.getElementById('rotateValue');
-    const togglePortraitGuide = document.getElementById('togglePortraitGuide');
-    const portraitFileCount = document.getElementById('portraitFileCount');
-
-    document.getElementById('filePortrait').addEventListener('change', function(e) {
-        portraitFiles = Array.from(e.target.files);
-        if (portraitFiles.length === 0) {
-            portraitFileCount.innerText = "선택된 파일: 없음";
-            btnCropPortrait.style.display = 'none';
-            return;
-        }
-        
-        portraitFileCount.innerText = `선택된 파일: ${portraitFiles.length}개`;
-        btnCropPortrait.style.display = 'block';
-
-        // 첫 번째 이미지로 프리뷰 마스터 설정
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            imgPortrait.src = ev.target.result;
-            if (cropperPortrait) cropperPortrait.destroy();
-            
-            portraitRotateSlider.value = 0;
-            rotateValue.innerText = "0°";
-
-            cropperPortrait = new Cropper(imgPortrait, {
-                aspectRatio: 1, viewMode: 0, dragMode: 'move', autoCropArea: 1,
-                cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false,
-                rotatable: true,
-                ready() {
-                    const viewBox = document.querySelector('#tab-portrait .cropper-view-box');
-                    if (viewBox && !viewBox.querySelector('.guide-svg')) {
-                        const tpl = document.getElementById('guide-tpl').content.cloneNode(true);
-                        viewBox.appendChild(tpl);
-                        updatePortraitGuide();
-                    }
-                }
-            });
-        };
-        reader.readAsDataURL(portraitFiles[0]);
-    });
-
-    // 회전 조절 이벤트 바인딩
-    portraitRotateSlider.addEventListener('input', function(e) {
-        const value = parseInt(e.target.value, 10);
-        rotateValue.innerText = `${value}°`;
-        if (cropperPortrait) cropperPortrait.rotateTo(value);
-    });
-
-    function rotatePortrait(degree) {
-        if (!cropperPortrait) return;
-        let current = parseInt(portraitRotateSlider.value, 10);
-        let next = (current + degree);
-        if (next > 180) next -= 360;
-        if (next < -180) next += 360;
-        portraitRotateSlider.value = next;
-        rotateValue.innerText = `${next}°`;
-        cropperPortrait.rotateTo(next);
-    }
-
-    function resetPortraitTransform() {
-        if (!cropperPortrait) return;
-        portraitRotateSlider.value = 0;
-        rotateValue.innerText = "0°";
-        cropperPortrait.reset();
-    }
-
-    togglePortraitGuide.addEventListener('change', updatePortraitGuide);
-    function updatePortraitGuide() {
-        const svg = document.querySelector('#tab-portrait .guide-svg');
-        if (svg) svg.style.display = togglePortraitGuide.checked ? 'block' : 'none';
-    }
-
-    // 일괄 크롭 및 ZIP 생성 핵심 로직
-    btnCropPortrait.addEventListener('click', async () => {
-        if (!cropperPortrait || portraitFiles.length === 0) return;
-
-        const data = cropperPortrait.getData(); // 변형 매트릭스값 (x, y, width, height, rotate 등 추출)
-        const zip = new JSZip();
-
-        const originalText = btnCropPortrait.innerText;
-        btnCropPortrait.innerText = '압축 파일 생성 중...';
-        btnCropPortrait.disabled = true;
-
-        // 투명 처리할 출력용 캔버스 세팅
-        const canvas = document.createElement('canvas');
-        canvas.width = data.width;
-        canvas.height = data.height;
-        const ctx = canvas.getContext('2d');
-
-        for (let file of portraitFiles) {
-            const img = await loadImage(file);
-            
-            // 캔버스 초기화 (완전 투명 상태 유지)
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            
-            // 마스터가 정의한 좌표 매핑 및 회전 연산 동기화 적용
-            ctx.translate(img.width / 2 - data.x, img.height / 2 - data.y);
-            ctx.rotate((data.rotate * Math.PI) / 180);
-            ctx.scale(data.scaleX || 1, data.scaleY || 1);
-            
-            // 원본 크기 기준으로 정중앙에 드로잉
-            ctx.drawImage(img, -img.width / 2, -img.height / 2);
-            ctx.restore();
-
-            // 가상 캔버스를 투명도 유지를 위해 고품질 image/png 블롭으로 변환
-            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-            const cleanName = file.name.replace(/\.[^/.]+$/, "") + "_cropped.png";
-            zip.file(cleanName, blob);
-        }
-
-        const content = await zip.generateAsync({ type: "blob" });
-        downloadBlob(content, "synchronized_portraits.zip");
-
-        btnCropPortrait.innerText = originalText;
-        btnCropPortrait.disabled = false;
-    });
-
-
-    // ==========================================
-    // 3. 컷인 크롭 로직 (기존 유지)
-    // ==========================================
-    const imgCutin = document.getElementById('imgCutin');
-    const canvasWInput = document.getElementById('canvasW');
-    const canvasHInput = document.getElementById('canvasH');
-    const bgColorInput = document.getElementById('bgColor');
-    const btnCropCutin = document.getElementById('btnCropCutin');
-
-    document.getElementById('fileCutin').addEventListener('change', function(e) {
-        if (!e.target.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            imgCutin.src = ev.target.result;
-            btnCropCutin.style.display = 'block';
-            initCropperCutin();
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    });
-
-    function initCropperCutin() {
-        if (cropperCutin) cropperCutin.destroy();
-        const w = parseInt(canvasWInput.value);
-        const h = parseInt(canvasHInput.value);
-        cropperCutin = new Cropper(imgCutin, {
-            aspectRatio: w / h, viewMode: 0, autoCropArea: 0.8, background: true,
+    // 헥스코드 인풋/컬러피커 연동 유틸
+    function syncColors(colorInput, hexInput) {
+        colorInput.addEventListener('input', (e) => { hexInput.value = e.target.value; });
+        hexInput.addEventListener('input', (e) => {
+            let val = e.target.value;
+            if (!val.startsWith('#')) { val = '#' + val; e.target.value = val; }
+            if (/^#[0-9A-F]{6}$/i.test(val)) { colorInput.value = val; }
         });
     }
 
-    [canvasWInput, canvasHInput].forEach(input => {
-        input.addEventListener('change', () => { if(cropperCutin) initCropperCutin(); });
-    });
-
-    btnCropCutin.addEventListener('click', () => {
-        if (!cropperCutin) return;
-        const w = parseInt(canvasWInput.value);
-        const h = parseInt(canvasHInput.value);
-        const color = bgColorInput.value;
-
-        const resultCanvas = cropperCutin.getCroppedCanvas({
-            width: w, height: h, fillColor: color, imageSmoothingEnabled: true, imageSmoothingQuality: 'high',
-        });
-        resultCanvas.toBlob(blob => downloadBlob(blob, 'cutin.png'));
-    });
-
-    // ==========================================
-    // 공용 유틸리티 함수
-    // ==========================================
     function downloadBlob(blob, name) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -481,6 +257,214 @@
             reader.readAsDataURL(file);
         });
     }
+
+    // ----------------------------------------------------
+    // 1. 두상 크롭
+    // ----------------------------------------------------
+    const imgHeadshot = document.getElementById('imgHeadshot');
+    const btnCropHeadshot = document.getElementById('btnCropHeadshot');
+    const headshotColor = document.getElementById('headshotColorPicker');
+    syncColors(headshotColor, document.getElementById('headshotHexInput'));
+
+    document.getElementById('fileHeadshot').addEventListener('change', function(e) {
+        if (!e.target.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            imgHeadshot.src = ev.target.result;
+            btnCropHeadshot.style.display = 'block';
+            if (cropperHeadshot) cropperHeadshot.destroy();
+            cropperHeadshot = new Cropper(imgHeadshot, { ...baseCropperOptions, aspectRatio: 1 });
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    btnCropHeadshot.addEventListener('click', () => {
+        if (!cropperHeadshot) return;
+        const canvas = cropperHeadshot.getCroppedCanvas({
+            fillColor: headshotColor.value,
+            imageSmoothingEnabled: true, imageSmoothingQuality: 'high'
+        });
+        canvas.toBlob(blob => downloadBlob(blob, 'headshot.png'));
+    });
+
+    // ----------------------------------------------------
+    // 2. 포트레이트 일괄 크롭 (W/H 동적 비율, 백그라운드 동기화)
+    // ----------------------------------------------------
+    const imgPortrait = document.getElementById('imgPortrait');
+    const btnCropPortrait = document.getElementById('btnCropPortrait');
+    const portraitWInput = document.getElementById('portraitW');
+    const portraitHInput = document.getElementById('portraitH');
+    const portraitRotateSlider = document.getElementById('portraitRotateSlider');
+    const rotateValue = document.getElementById('rotateValue');
+    const portraitFileCount = document.getElementById('portraitFileCount');
+
+    function initPortraitCropper() {
+        if (cropperPortrait) cropperPortrait.destroy();
+        const w = parseInt(portraitWInput.value) || 460;
+        const h = parseInt(portraitHInput.value) || 800;
+        
+        cropperPortrait = new Cropper(imgPortrait, {
+            ...baseCropperOptions,
+            aspectRatio: w / h,
+            rotatable: true
+        });
+    }
+
+    document.getElementById('filePortrait').addEventListener('change', function(e) {
+        portraitFiles = Array.from(e.target.files);
+        if (portraitFiles.length === 0) {
+            portraitFileCount.innerText = "선택된 파일: 없음";
+            btnCropPortrait.style.display = 'none';
+            return;
+        }
+        portraitFileCount.innerText = `선택된 파일: ${portraitFiles.length}개`;
+        btnCropPortrait.style.display = 'block';
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            imgPortrait.src = ev.target.result;
+            portraitRotateSlider.value = 0;
+            rotateValue.innerText = "0°";
+            initPortraitCropper();
+        };
+        reader.readAsDataURL(portraitFiles[0]);
+    });
+
+    // 가로 세로 값 변경 시 실시간 프레임 비율 갱신
+    [portraitWInput, portraitHInput].forEach(input => {
+        input.addEventListener('change', () => { if(imgPortrait.src) initPortraitCropper(); });
+    });
+
+    // 회전 조절
+    portraitRotateSlider.addEventListener('input', function(e) {
+        const val = parseInt(e.target.value, 10);
+        rotateValue.innerText = `${val}°`;
+        if (cropperPortrait) cropperPortrait.rotateTo(val);
+    });
+    function rotatePortrait(degree) {
+        if (!cropperPortrait) return;
+        let current = parseInt(portraitRotateSlider.value, 10);
+        let next = current + degree;
+        if (next > 180) next -= 360;
+        if (next < -180) next += 360;
+        portraitRotateSlider.value = next;
+        rotateValue.innerText = `${next}°`;
+        cropperPortrait.rotateTo(next);
+    }
+    function resetPortraitTransform() {
+        if (!cropperPortrait) return;
+        portraitRotateSlider.value = 0;
+        rotateValue.innerText = "0°";
+        cropperPortrait.reset();
+    }
+
+    // ★ ZIP 일괄 생성 (완벽한 좌표/크기/회전 동기화)
+    btnCropPortrait.addEventListener('click', async () => {
+        if (!cropperPortrait || portraitFiles.length === 0) return;
+        
+        const targetW = parseInt(portraitWInput.value);
+        const targetH = parseInt(portraitHInput.value);
+        const masterData = cropperPortrait.getData(); // 첫 번째 이미지의 이동/줌/회전 데이터
+        const zip = new JSZip();
+
+        const originalText = btnCropPortrait.innerText;
+        btnCropPortrait.innerText = '압축 파일 생성 중...';
+        btnCropPortrait.disabled = true;
+
+        // 보이지 않는 가상 공간(Offscreen)에서 Cropper를 생성하여 정확한 픽셀 계산 적용
+        const offscreenContainer = document.createElement('div');
+        offscreenContainer.style.position = 'absolute';
+        offscreenContainer.style.top = '-9999px';
+        offscreenContainer.style.width = '1000px';
+        document.body.appendChild(offscreenContainer);
+
+        for (let file of portraitFiles) {
+            const imgObj = await loadImage(file);
+            const hiddenImg = document.createElement('img');
+            hiddenImg.src = imgObj.src;
+            hiddenImg.style.maxWidth = '100%';
+            offscreenContainer.appendChild(hiddenImg);
+
+            await new Promise(resolve => {
+                const tempCropper = new Cropper(hiddenImg, {
+                    ...baseCropperOptions,
+                    aspectRatio: targetW / targetH,
+                    ready() {
+                        // 모든 파일에 첫 번째 이미지와 똑같은 좌표 데이터를 주입
+                        tempCropper.setData(masterData);
+                        
+                        // 설정한 W/H 픽셀 크기에 맞춰 투명 PNG 캔버스 추출
+                        const canvas = tempCropper.getCroppedCanvas({
+                            width: targetW, height: targetH,
+                            imageSmoothingEnabled: true, imageSmoothingQuality: 'high'
+                        });
+
+                        canvas.toBlob(blob => {
+                            const cleanName = file.name.replace(/\.[^/.]+$/, "") + "_portrait.png";
+                            zip.file(cleanName, blob);
+                            tempCropper.destroy();
+                            offscreenContainer.innerHTML = ''; // 다음 이미지를 위해 초기화
+                            resolve();
+                        }, 'image/png');
+                    }
+                });
+            });
+        }
+        
+        document.body.removeChild(offscreenContainer);
+        const content = await zip.generateAsync({ type: "blob" });
+        downloadBlob(content, "synchronized_portraits.zip");
+
+        btnCropPortrait.innerText = originalText;
+        btnCropPortrait.disabled = false;
+    });
+
+    // ----------------------------------------------------
+    // 3. 컷인 크롭
+    // ----------------------------------------------------
+    const imgCutin = document.getElementById('imgCutin');
+    const btnCropCutin = document.getElementById('btnCropCutin');
+    const cutinWInput = document.getElementById('cutinW');
+    const cutinHInput = document.getElementById('cutinH');
+    const cutinColor = document.getElementById('cutinColorPicker');
+    syncColors(cutinColor, document.getElementById('cutinHexInput'));
+
+    function initCutinCropper() {
+        if (cropperCutin) cropperCutin.destroy();
+        const w = parseInt(cutinWInput.value) || 1200;
+        const h = parseInt(cutinHInput.value) || 400;
+        cropperCutin = new Cropper(imgCutin, {
+            ...baseCropperOptions,
+            aspectRatio: w / h
+        });
+    }
+
+    document.getElementById('fileCutin').addEventListener('change', function(e) {
+        if (!e.target.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            imgCutin.src = ev.target.result;
+            btnCropCutin.style.display = 'block';
+            initCutinCropper();
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    [cutinWInput, cutinHInput].forEach(input => {
+        input.addEventListener('change', () => { if(imgCutin.src) initCutinCropper(); });
+    });
+
+    btnCropCutin.addEventListener('click', () => {
+        if (!cropperCutin) return;
+        const w = parseInt(cutinWInput.value);
+        const h = parseInt(cutinHInput.value);
+        
+        const canvas = cropperCutin.getCroppedCanvas({
+            width: w, height: h, fillColor: cutinColor.value,
+            imageSmoothingEnabled: true, imageSmoothingQuality: 'high'
+        });
+        canvas.toBlob(blob => downloadBlob(blob, 'cutin.png'));
+    });
 </script>
 
 </body>
