@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캐릭터 스프라이트 & 포트레이트 에디터</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6b21a8; /* 기준 테마색 (보라) */
+            --primary-hover: #581c87;
+            --bg: #f8fafc;
+        }
+        body {
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            margin: 0; padding: 20px; background-color: #f1f5f9; color: #333;
+        }
+        .container {
+            max-width: 1100px; margin: 0 auto; background: #fff; padding: 25px;
+            border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        h2 { margin-top: 0; text-align: center; color: #1e293b; }
+        
+        /* 탭 스타일 */
+        .tabs { display: flex; border-bottom: 2px solid #e2e8f0; justify-content: center; }
+        .tab-btn {
+            padding: 12px 24px; cursor: pointer; border: none; background: none;
+            font-size: 16px; font-weight: bold; color: #94a3b8;
+            border-bottom: 3px solid transparent; transition: 0.2s;
+        }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 컨트롤 영역 */
+        .controls {
+            padding: 15px; background: var(--bg); border: 1px solid #e2e8f0;
+            border-radius: 8px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;
+        }
+        .input-group { display: flex; align-items: center; gap: 8px; }
+        input[type="text"] { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
+        input[type="file"] { border: 1px dashed #cbd5e1; padding: 5px; border-radius: 4px; background: #fff; }
+        label { font-weight: 600; font-size: 14px; }
+        
+        /* 버튼 */
+        button.action-btn {
+            background-color: var(--primary); color: white; border: none;
+            padding: 10px 20px; border-radius: 6px; font-size: 15px; font-weight: bold;
+            cursor: pointer; transition: 0.2s;
+        }
+        button.action-btn:hover { background-color: var(--primary-hover); }
+
+        /* 이미지 컨테이너 */
+        .editor-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .img-container {
+            flex: 1; min-height: 400px; max-height: 600px; background: #e2e8f0;
+            border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+        img { max-width: 100%; display: block; }
+        
+        /* 포트레이트 갤러리 프리뷰 */
+        .gallery-container {
+            width: 300px; background: var(--bg); padding: 15px; border-radius: 8px;
+            border: 1px solid #e2e8f0; max-height: 600px; overflow-y: auto;
+        }
+        .gallery-title { font-size: 14px; font-weight: bold; margin-top: 0; margin-bottom: 10px; color: #475569; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .grid img { width: 100%; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #cbd5e1; }
+        
+        /* 가이드라인 SVG (숨김/표시 용도) */
+        #silhouette-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 999; opacity: 0.6; display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>✨ 캐릭터 크롭 에디터</h2>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-standing')">🧍‍♀️ 스탠딩 (전신) 크롭</button>
+        <button class="tab-btn" onclick="switchTab('tab-portrait')">👤 포트레이트 (표정) 크롭</button>
+    </div>
+
+    <div id="tab-standing" class="tab-content active">
+        <div class="controls">
+            <div class="input-group">
+                <label>이미지 불러오기:</label>
+                <input type="file" id="fileStanding" accept="image/*">
+            </div>
+            <div class="input-group">
+                <label>비율:</label>
+                <select id="standingRatio">
+                    <option value="NaN">자유 비율</option>
+                    <option value="0.5">1:2 (세로형)</option>
+                    <option value="0.75">3:4</option>
+                </select>
+            </div>
+            <button id="btnSaveStanding" class="action-btn" style="margin-left:auto; display:none;">스탠딩 저장</button>
+        </div>
+        <div class="img-container">
+            <img id="imgStanding">
+        </div>
+    </div>
+
+    <div id="tab-portrait" class="tab-content">
+        <div class="controls">
+            <div class="input-group">
+                <label>이미지 불러오기:</label>
+                <input type="file" id="filePortrait" accept="image/*">
+            </div>
+            <div class="input-group">
+                <label>표정 이름:</label>
+                <input type="text" id="portraitName" placeholder="예: 기본, 당황, 분노" value="기본">
+            </div>
+            <div class="input-group">
+                <label>글자색:</label>
+                <input type="color" id="textColor" value="#6b21a8">
+            </div>
+            <div class="input-group" style="margin-left: 10px;">
+                <input type="checkbox" id="toggleGuide" checked>
+                <label for="toggleGuide">실루엣 가이드라인</label>
+            </div>
+            <button id="btnSavePortrait" class="action-btn" style="margin-left:auto; display:none;">포트레이트 저장</button>
+        </div>
+        
+        <div class="editor-layout">
+            <div class="img-container">
+                <img id="imgPortrait">
+            </div>
+            <div class="gallery-container">
+                <div class="gallery-title">💾 저장된 포트레이트 모음</div>
+                <div id="portraitGrid" class="grid">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<template id="silhouette-tpl">
+    <svg id="silhouette-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1="50" y1="0" x2="50" y2="100" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.8"/>
+        <line x1="0" y1="35" x2="100" y2="35" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.8"/>
+        <ellipse cx="50" cy="35" rx="22" ry="25" fill="none" stroke="#ff0044" stroke-width="1.5" stroke-dasharray="4"/>
+        <path d="M 22 100 Q 22 75 50 75 Q 78 75 78 100" fill="none" stroke="#ff0044" stroke-width="1.5" stroke-dasharray="4"/>
+    </svg>
+</template>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    let cropperStanding = null;
+    let cropperPortrait = null;
+
+    // 탭 전환 기능
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // ==========================================
+    // 1. 스탠딩 크롭 로직
+    // ==========================================
+    const imgStanding = document.getElementById('imgStanding');
+    const standingRatio = document.getElementById('standingRatio');
+    const btnSaveStanding = document.getElementById('btnSaveStanding');
+
+    document.getElementById('fileStanding').addEventListener('change', function(e) {
+        if (!e.target.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            imgStanding.src = event.target.result;
+            btnSaveStanding.style.display = 'block';
+            if (cropperStanding) cropperStanding.destroy();
+            cropperStanding = new Cropper(imgStanding, {
+                aspectRatio: NaN, // 자유비율 기본
+                viewMode: 1
+            });
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    standingRatio.addEventListener('change', function() {
+        if (cropperStanding) cropperStanding.setAspectRatio(parseFloat(this.value));
+    });
+
+    btnSaveStanding.addEventListener('click', () => {
+        if (!cropperStanding) return;
+        cropperStanding.getCroppedCanvas().toBlob(blob => {
+            downloadBlob(blob, 'standing_cropped.png');
+        });
+    });
+
+    // ==========================================
+    // 2. 포트레이트 크롭 로직 (가이드라인 + 텍스트 렌더링)
+    // ==========================================
+    const imgPortrait = document.getElementById('imgPortrait');
+    const portraitNameInput = document.getElementById('portraitName');
+    const textColorInput = document.getElementById('textColor');
+    const toggleGuide = document.getElementById('toggleGuide');
+    const btnSavePortrait = document.getElementById('btnSavePortrait');
+    const portraitGrid = document.getElementById('portraitGrid');
+
+    document.getElementById('filePortrait').addEventListener('change', function(e) {
+        if (!e.target.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            imgPortrait.src = event.target.result;
+            btnSavePortrait.style.display = 'block';
+            if (cropperPortrait) cropperPortrait.destroy();
+            
+            cropperPortrait = new Cropper(imgPortrait, {
+                aspectRatio: 1, // 포트레이트는 무조건 1:1 정사각형
+                viewMode: 1,
+                ready: function () {
+                    // Cropper가 준비되면 크롭 박스 안에 실루엣 SVG 주입
+                    const viewBox = document.querySelector('#tab-portrait .cropper-view-box');
+                    const tpl = document.getElementById('silhouette-tpl').content.cloneNode(true);
+                    viewBox.appendChild(tpl);
+                    updateGuideVisibility();
+                }
+            });
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    });
+
+    // 가이드라인 끄기/켜기
+    toggleGuide.addEventListener('change', updateGuideVisibility);
+    function updateGuideVisibility() {
+        const svg = document.getElementById('silhouette-svg');
+        if (svg) svg.style.display = toggleGuide.checked ? 'block' : 'none';
+    }
+
+    // 포트레이트 저장 (글자 합성 및 프리뷰 추가)
+    btnSavePortrait.addEventListener('click', () => {
+        if (!cropperPortrait) return;
+        
+        const canvas = cropperPortrait.getCroppedCanvas({
+            width: 300, // 통일된 해상도를 위해 고정 (원하면 제거 가능)
+            height: 300
+        });
+        const ctx = canvas.getContext('2d');
+        const text = portraitNameInput.value.trim();
+
+        // 텍스트가 입력되어 있다면 이미지 하단에 글자 렌더링 (참고하신 이미지 스타일)
+        if (text) {
+            const fontSize = 40;
+            ctx.font = `900 ${fontSize}px "Pretendard", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            
+            const x = canvas.width / 2;
+            const y = canvas.height - 10;
+
+            // 흰색 테두리 (Outline)
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 10;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(text, x, y);
+
+            // 지정한 색상 채우기 (Fill)
+            ctx.fillStyle = textColorInput.value;
+            ctx.fillText(text, x, y);
+        }
+
+        // 이미지 파일로 다운로드 및 갤러리에 추가
+        const fileName = text ? `portrait_${text}.png` : `portrait.png`;
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        // 1. 다운로드 트리거
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = fileName;
+        a.click();
+
+        // 2. 우측 갤러리에 추가 (첨부 이미지처럼 모아볼 수 있도록)
+        const imgEl = document.createElement('img');
+        imgEl.src = dataUrl;
+        imgEl.title = text;
+        portraitGrid.appendChild(imgEl);
+    });
+
+    // 공통 유틸리티
+    function downloadBlob(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
