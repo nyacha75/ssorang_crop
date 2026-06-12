@@ -34,6 +34,13 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* 서브 탭 UI */
+        .sub-tabs { display: flex; gap: 10px; margin-bottom: 15px; background: #e2e8f0; padding: 5px; border-radius: 8px; }
+        .sub-tab-btn { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 6px; font-weight: bold; color: #475569; cursor: pointer; transition: 0.2s; font-size: 14.5px; }
+        .sub-tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .sub-tab-content { display: none; }
+        .sub-tab-content.active { display: block; animation: fadeIn 0.2s; }
+
         /* 좌우 분할 및 캔버스 */
         .split-layout { display: flex; gap: 25px; align-items: stretch; margin-top: 10px; }
         .split-left-wrapper {
@@ -43,9 +50,12 @@
         .canvas-box {
             position: relative; outline: 3px solid var(--primary);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
+            /* 캔버스 기본 투명 격자무늬 */
             background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; background-color: #fff;
         }
+        /* 이미지 기본 리셋 */
+        .canvas-box > img { display: block; max-width: 100%; }
         
         /* 우측 컨트롤 패널 */
         .split-right {
@@ -94,11 +104,11 @@
         .item-controls button { flex: 1; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .item-controls button:hover { background: #e2e8f0; }
 
-        /* ★ Cropper.js 방해요소 완전 삭제 (투명화) ★ */
+        /* ★ Cropper.js 방해요소 투명화 (버그의 원흉이던 cropper-bg는 건드리지 않음!) ★ */
         .cropper-view-box { outline: none !important; position: relative; }
-        .cropper-modal, .cropper-bg, .cropper-face { background: transparent !important; opacity: 0 !important; }
+        .cropper-modal { background-color: transparent !important; opacity: 0 !important; }
+        .cropper-face { background-color: transparent !important; opacity: 0 !important; }
         .cropper-point, .cropper-line { display: none !important; }
-        .guide-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
     </style>
 </head>
 <body>
@@ -134,7 +144,7 @@
                 <div>
                     <label>3. 보조선 및 크기 조절</label>
                     <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="hsGuideCircle"><label for="hsGuideCircle" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">원형 가이드 (트위터 꽉 차게)</label>
+                        <input type="checkbox" id="hsGuideCircle"><label for="hsGuideCircle" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">원형 가이드 (트위터 프사 꽉 차게)</label>
                         <input type="checkbox" id="hsGuideGrid" style="margin-left:10px;"><label for="hsGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드</label>
                     </div>
                     <div class="input-group" style="margin-bottom: 8px;">
@@ -156,92 +166,97 @@
             <div id="portraitFileCount" class="file-count" style="margin-top: 10px;">선택된 파일: 없음</div>
         </div>
 
-        <h3 style="color: #1e293b; margin-bottom: 10px;">📁 개별 일괄 추출 (ZIP)</h3>
-        <p class="help-text" style="margin-bottom: 15px;">여러 장의 표정을 동일한 좌표로 잘라 <strong style="color:var(--primary);">원본 파일명</strong> 그대로 개별 투명 PNG로 추출합니다.</p>
-        <div class="split-layout">
-            <div class="split-left-wrapper"><div class="canvas-box" id="ptBox"></div></div>
-            <div class="split-right">
-                <div class="input-group">
-                    <div><label>캔버스 가로 (px)</label><input type="number" id="portraitW" value="460"></div>
-                    <div><label>캔버스 세로 (px)</label><input type="number" id="portraitH" value="800"></div>
-                    <div style="margin-left: 5px; margin-top: 25px;">
-                        <input type="checkbox" id="ptSquareToggle">
-                        <label for="ptSquareToggle" style="display:inline; cursor:pointer; font-weight:normal; font-size:13px;">1:1 고정</label>
-                    </div>
-                </div>
-                <div>
-                    <label>보조선 및 크기 조절</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="ptGuideGrid"><label for="ptGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드 (코코포리아 1칸 비율)</label>
-                    </div>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="number" id="ptImgW" class="full-width" placeholder="자동"><span style="font-size:13px; color:#64748b;">가로 px</span>
-                    </div>
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" data-sub="sub-pt-sync">2-1. 일괄 추출 (ZIP)</button>
+            <button class="sub-tab-btn" data-sub="sub-pt-collage">2-2. 콜라주 모아보기</button>
+        </div>
+
+        <div id="sub-pt-sync" class="sub-tab-content active">
+            <div class="split-layout">
+                <div class="split-left-wrapper"><div class="canvas-box" id="ptBox"></div></div>
+                <div class="split-right">
+                    <p class="help-text" style="margin-bottom: 5px;">여러 장의 표정을 동일한 좌표로 잘라 <strong style="color:var(--primary);">원본 파일명</strong> 그대로 개별 투명 PNG로 추출합니다.</p>
                     <div class="input-group">
-                        <input type="checkbox" id="ptFineZoom"><label for="ptFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 세밀하게 (기본: 확확 축소/확대)</label>
+                        <div><label>캔버스 가로 (px)</label><input type="number" id="portraitW" value="460"></div>
+                        <div><label>캔버스 세로 (px)</label><input type="number" id="portraitH" value="800"></div>
+                        <div style="margin-left: 5px; margin-top: 25px;">
+                            <input type="checkbox" id="ptSquareToggle">
+                            <label for="ptSquareToggle" style="display:inline; cursor:pointer; font-weight:normal; font-size:13px;">1:1 고정</label>
+                        </div>
                     </div>
+                    <div>
+                        <label>보조선 및 크기 조절</label>
+                        <div class="input-group" style="margin-bottom: 8px;">
+                            <input type="checkbox" id="ptGuideGrid"><label for="ptGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드 (코코포리아 1칸 비율)</label>
+                        </div>
+                        <div class="input-group" style="margin-bottom: 8px;">
+                            <input type="number" id="ptImgW" class="full-width" placeholder="자동"><span style="font-size:13px; color:#64748b;">가로 px</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="checkbox" id="ptFineZoom"><label for="ptFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 세밀하게</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label>회전 각도 조절</label>
+                        <div class="input-group" style="width: 100%;">
+                            <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
+                            <span id="rotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
+                        </div>
+                        <div class="btn-row" style="margin-top: 10px;">
+                            <button class="sub-btn" onclick="rotatePortrait(-90)">↺ -90°</button>
+                            <button class="sub-btn" onclick="rotatePortrait(90)">↻ +90°</button>
+                            <button class="sub-btn" onclick="resetPortraitTransform()">🔄 초기화</button>
+                        </div>
+                    </div>
+                    <button id="btnCropPortrait" class="action-btn" disabled style="margin-top:auto;">전체 파일 개별 추출 (ZIP)</button>
                 </div>
-                <div>
-                    <label>회전 각도 조절</label>
-                    <div class="input-group" style="width: 100%;">
-                        <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
-                        <span id="rotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
-                    </div>
-                    <div class="btn-row" style="margin-top: 10px;">
-                        <button class="sub-btn" onclick="rotatePortrait(-90)">↺ -90°</button>
-                        <button class="sub-btn" onclick="rotatePortrait(90)">↻ +90°</button>
-                        <button class="sub-btn" onclick="resetPortraitTransform()">🔄 초기화</button>
-                    </div>
-                </div>
-                <button id="btnCropPortrait" class="action-btn" disabled style="margin-top:auto;">전체 파일 개별 추출 (ZIP)</button>
             </div>
         </div>
 
-        <hr class="divider">
-
-        <h3 style="color: #1e293b; margin-bottom: 10px;">🖼️ 포트레이트 모아보기 (콜라주)</h3>
-        <p class="help-text" style="margin-bottom: 15px;">위 영역과 완벽히 독립적으로 크롭(기본 정사각형)하여, <strong style="color:var(--primary);">_(언더바) 뒤의 표정 이름</strong>이 자동으로 들어간 모음집을 만듭니다.</p>
-        <div class="split-layout">
-            <div class="split-left-wrapper"><div class="canvas-box" id="colBox"></div></div>
-            <div class="split-right">
-                <div class="input-group" style="align-items: flex-end;">
-                    <div><label>자르기 가로(px)</label><input type="number" id="colW" value="460"></div>
-                    <div><label>자르기 세로(px)</label><input type="number" id="colH" value="460" disabled></div>
-                    <div style="margin-bottom: 10px; margin-left: 5px;">
-                        <input type="checkbox" id="colSquareToggle" checked>
-                        <label for="colSquareToggle" style="display:inline; cursor:pointer; font-size:13px; font-weight:normal;">1:1 고정</label>
+        <div id="sub-pt-collage" class="sub-tab-content">
+            <div class="split-layout">
+                <div class="split-left-wrapper"><div class="canvas-box" id="colBox"></div></div>
+                <div class="split-right">
+                    <p class="help-text" style="margin-bottom: 5px;">위와 독립적으로 새롭게 크롭하여, <strong style="color:var(--primary);">_(언더바) 뒤의 표정 이름</strong>이 자동으로 들어간 모음집을 만듭니다.</p>
+                    <div class="input-group" style="align-items: flex-end;">
+                        <div><label>자르기 가로(px)</label><input type="number" id="colW" value="460"></div>
+                        <div><label>자르기 세로(px)</label><input type="number" id="colH" value="460" disabled></div>
+                        <div style="margin-bottom: 10px; margin-left: 5px;">
+                            <input type="checkbox" id="colSquareToggle" checked>
+                            <label for="colSquareToggle" style="display:inline; cursor:pointer; font-size:13px; font-weight:normal;">1:1 고정</label>
+                        </div>
                     </div>
+                    <div>
+                        <label>크기 조절 및 회전</label>
+                        <div class="input-group" style="margin-bottom: 8px;">
+                            <input type="number" id="colImgW" class="full-width" placeholder="자동"><span style="font-size:13px; color:#64748b;">가로 px</span>
+                        </div>
+                        <div class="input-group" style="margin-bottom: 8px;">
+                            <input type="checkbox" id="colFineZoom"><label for="colFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 세밀하게</label>
+                        </div>
+                        <div class="input-group" style="width: 100%; margin-top: 10px;">
+                            <input type="range" id="colRotateSlider" min="-180" max="180" value="0">
+                            <span id="colRotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label>레이아웃 & 배경 설정</label>
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <div><label style="font-size: 13px; margin-bottom:5px;">배치 열 수</label><input type="number" id="colCols" value="3" style="width: 60px;"></div>
+                            <div><label style="font-size: 13px; margin-bottom:5px;">글자 색상</label><input type="color" id="colTextColor" value="#2563eb" style="width: 60px;"></div>
+                        </div>
+                        <label style="font-size: 13px; margin-bottom:5px;">옆에 띄울 스탠딩 원본 (선택)</label>
+                        <input type="file" id="colSideImg" accept="image/*">
+                    </div>
+                    <button id="btnGeneratePreview" class="action-btn" disabled style="margin-top:auto; background-color: #8b5cf6;">✨ 하단에 그리드 미리보기 생성</button>
                 </div>
-                <div>
-                    <label>크기 조절 및 회전</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="number" id="colImgW" class="full-width" placeholder="자동"><span style="font-size:13px; color:#64748b;">가로 px</span>
-                    </div>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="colFineZoom"><label for="colFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 세밀하게</label>
-                    </div>
-                    <div class="input-group" style="width: 100%; margin-top: 10px;">
-                        <input type="range" id="colRotateSlider" min="-180" max="180" value="0">
-                        <span id="colRotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
-                    </div>
-                </div>
-                <div>
-                    <label>레이아웃 & 배경 설정</label>
-                    <div class="input-group" style="margin-bottom: 12px;">
-                        <div><label style="font-size: 13px; margin-bottom:5px;">배치 열 수</label><input type="number" id="colCols" value="3" style="width: 60px;"></div>
-                        <div><label style="font-size: 13px; margin-bottom:5px;">글자 색상</label><input type="color" id="colTextColor" value="#2563eb" style="width: 60px;"></div>
-                    </div>
-                    <label style="font-size: 13px; margin-bottom:5px;">옆에 띄울 스탠딩 원본 (선택)</label>
-                    <input type="file" id="colSideImg" accept="image/*">
-                </div>
-                <button id="btnGeneratePreview" class="action-btn" disabled style="margin-top:auto; background-color: #8b5cf6;">✨ 하단에 그리드 미리보기 생성</button>
             </div>
-        </div>
-
-        <div class="collage-preview-wrapper" id="collagePreviewArea" style="display: none;">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 16px;">🔍 그리드 확인 (드래그하여 순서 변경 & 텍스트 직접 수정 가능)</h3>
-            <div class="collage-grid" id="collageGrid"></div>
-            <button id="btnDownloadCollage" class="action-btn" style="margin-top: 20px;">콜라주 최종 다운로드</button>
+            
+            <div class="collage-preview-wrapper" id="collagePreviewArea" style="display: none;">
+                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 16px;">🔍 그리드 확인 (드래그하여 순서 변경 & 텍스트 직접 수정 가능)</h3>
+                <div class="collage-grid" id="collageGrid"></div>
+                <button id="btnDownloadCollage" class="action-btn" style="margin-top: 20px;">콜라주 최종 다운로드</button>
+            </div>
         </div>
     </div>
 
@@ -286,8 +301,16 @@
     </div>
 </div>
 
+<template id="tpl-grid-3x3">
+    <svg class="guide-grid" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none; z-index:999;">
+        <line x1="33.33" y1="0" x2="33.33" y2="100" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.7"/>
+        <line x1="66.66" y1="0" x2="66.66" y2="100" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.7"/>
+        <line x1="0" y1="33.33" x2="100" y2="33.33" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.7"/>
+        <line x1="0" y1="66.66" x2="100" y2="66.66" stroke="#ff0044" stroke-width="0.5" stroke-dasharray="2" opacity="0.7"/>
+    </svg>
+</template>
 <template id="tpl-circle">
-    <svg class="guide-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <svg class="guide-circle" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none; z-index:999;">
         <circle cx="50" cy="50" r="50" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3" opacity="0.8"/>
     </svg>
 </template>
@@ -304,21 +327,35 @@
     let headshotFile = null, cutinFile = null;
     let headshotFileName = 'headshot', cutinFileName = 'cutin';
 
-    // 기본 휠 감도 0.5 (매우 빠름)
+    // 탭 이동 시 지연 렌더링을 위한 깃발 (렌더링 꼬임 방지)
+    let flags = { hs: false, pt: false, col: false, ci: false };
+
+    // 기본 휠 감도 0.4 (매우 빠름). ★background: false★ 로 자체 배경 생성 차단
     const baseCropperOptions = {
         viewMode: 0, dragMode: 'move', autoCropArea: 1, cropBoxMovable: false, 
         cropBoxResizable: false, toggleDragModeOnDblclick: false, guides: false, 
-        center: true, wheelZoomRatio: 0.5 
+        center: true, background: false, wheelZoomRatio: 0.4 
     };
 
-    // 탭 전환
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll(`.tab-btn, .tab-content`).forEach(el => el.classList.remove('active'));
-            document.getElementById(e.target.dataset.target).classList.add('active');
-            e.target.classList.add('active');
+    // 탭 전환 시스템
+    const switchTab = (btnClass, contentClass) => {
+        document.querySelectorAll(btnClass).forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll(`${btnClass}, ${contentClass}`).forEach(el => el.classList.remove('active'));
+                const targetId = e.target.dataset.target || e.target.dataset.sub;
+                document.getElementById(targetId).classList.add('active');
+                e.target.classList.add('active');
+                
+                // 가려졌던 탭이 열릴 때 크로퍼 안전하게 재시작
+                if (targetId === 'tab-headshot' && flags.hs) { loadHs(); flags.hs = false; }
+                if (targetId === 'sub-pt-sync' && flags.pt) { loadPt(); flags.pt = false; }
+                if (targetId === 'sub-pt-collage' && flags.col) { loadCol(); flags.col = false; }
+                if (targetId === 'tab-cutin' && flags.ci) { loadCi(); flags.ci = false; }
+            });
         });
-    });
+    };
+    switchTab('.tab-btn', '.tab-content');
+    switchTab('.sub-tab-btn', '.sub-tab-content');
 
     const updateCanvasBoxSize = (boxId, w, h, maxDim = 450) => {
         const box = document.getElementById(boxId);
@@ -328,56 +365,60 @@
         else { box.style.height = maxDim + 'px'; box.style.width = (maxDim * ratio) + 'px'; }
     };
 
-    // ★ 깜빡임 버그 100% 차단! 궁극의 안전 렌더링 엔진 ★
-    // 기존 이미지를 뜯어버리고 새로운 이미지를 박스에 붙인 후, 브라우저가 화면을 완전히 그릴 때까지 대기
-    const spawnCropper = (boxId, file, w, h, inputId, extraOpts, onReady) => {
+    // ★ 렌더링 충돌 해결: DOM 완전 삭제 후 새 이미지 로드, 그리고 딜레이 후 크로퍼 생성 ★
+    const spawnCropperSafe = (file, boxId, w, h, inputId, extraOptions, onReady) => {
         return new Promise(resolve => {
             const box = document.getElementById(boxId);
             if (!box || !file) { resolve(null); return; }
             
+            // 박스가 화면에 안보이면(다른 탭) 렌더링 취소
+            if (box.offsetParent === null) { resolve(null); return; }
+
             updateCanvasBoxSize(boxId, w, h);
-            box.innerHTML = ''; // 크로퍼 잔재 완전 삭제
+            box.innerHTML = ''; // 캔버스 내부 초기화
             
             const img = document.createElement('img');
             img.style.display = 'block'; 
             img.style.maxWidth = '100%';
-            
+
             img.onload = () => {
-                // 브라우저 리플로우(Reflow)를 보장하기 위해 50ms 대기 (이미지가 100% 뜬 상태에서 크롭 덮어씌움)
+                box.appendChild(img);
+                // 브라우저 렌더링이 완료될 때까지 안전하게 대기
                 setTimeout(() => {
-                    const cropper = new Cropper(img, {
-                        ...baseCropperOptions, ...extraOpts, aspectRatio: w / h,
-                        ready() {
-                            if(inputId) {
-                                const input = document.getElementById(inputId);
-                                input.value = Math.round(this.getImageData().width);
-                                const clone = input.cloneNode(true);
-                                input.replaceWith(clone);
-                                clone.addEventListener('change', e => {
-                                    const nw = parseInt(e.target.value);
-                                    if(nw) this.zoomTo(nw / this.getImageData().naturalWidth);
-                                });
-                                
-                                img.addEventListener('zoom', e => {
-                                    const el = document.getElementById(inputId);
-                                    if(el) el.value = Math.round(this.getImageData().naturalWidth * e.detail.ratio);
-                                });
+                    const c = new Cropper(img, {
+                        ...baseCropperOptions, ...extraOptions, aspectRatio: w / h,
+                        zoom(e) {
+                            if (inputId) {
+                                const el = document.getElementById(inputId);
+                                if (el) el.value = Math.round(this.getImageData().naturalWidth * e.detail.ratio);
                             }
-                            if(onReady) onReady(this);
-                            resolve(this);
+                        },
+                        ready() {
+                            if (inputId) {
+                                const el = document.getElementById(inputId);
+                                if (el) {
+                                    el.value = Math.round(this.getImageData().width);
+                                    const clone = el.cloneNode(true);
+                                    el.replaceWith(clone);
+                                    clone.addEventListener('change', ev => {
+                                        const nw = parseInt(ev.target.value);
+                                        if (nw) this.zoomTo(nw / this.getImageData().naturalWidth);
+                                    });
+                                }
+                            }
+                            if (onReady) onReady(this);
+                            resolve(c);
                         }
                     });
                 }, 50); 
             };
             img.src = URL.createObjectURL(file);
-            box.appendChild(img);
         });
     };
 
     /* ==============================
-       2. 유틸리티 함수
+       2. 유틸리티 및 디자인 함수
        ============================== */
-    // 원본 파일명 유지 및 언더바 추출
     const extractNameParts = (filename) => {
         const baseName = filename.replace(/\.[^/.]+$/, "");
         const parts = baseName.split('_');
@@ -394,7 +435,6 @@
         a.click(); URL.revokeObjectURL(url);
     };
 
-    // 색상, 줌 감도 설정
     const setupColorControls = (prefix) => {
         const chk = document.getElementById(`${prefix}Transparent`), group = document.getElementById(`${prefix}ColorGroup`);
         const picker = document.getElementById(`${prefix}ColorPicker`), hex = document.getElementById(`${prefix}HexInput`);
@@ -407,8 +447,9 @@
         });
     };
 
-    // 코코포리아 완벽 정사각형 비율 동적 격자 생성
-    const createCocoforiaGrid = (w, h) => {
+    // ★ 코코포리아 완벽 정사각형 비율 동적 격자 생성 ★
+    const createSquareGrid = (w, h) => {
+        const cols = 10; const cellSize = w / cols; 
         const svgns = "http://www.w3.org/2000/svg";
         const svg = document.createElementNS(svgns, "svg");
         svg.setAttribute("class", "guide-layer");
@@ -416,39 +457,44 @@
         svg.setAttribute("preserveAspectRatio", "none");
         Object.assign(svg.style, { position:'absolute', top:'0', left:'0', width:'100%', height:'100%', pointerEvents:'none', zIndex:'999' });
 
-        const cellSize = w / 10; // 가로 10칸 기준, 무조건 정사각형 셀
         for(let x = cellSize; x < w; x += cellSize) {
             const line = document.createElementNS(svgns, "line");
             line.setAttribute("x1", x); line.setAttribute("y1", 0); line.setAttribute("x2", x); line.setAttribute("y2", h);
-            line.setAttribute("stroke", "#ff0044"); line.setAttribute("stroke-width", (w/100).toString()); line.setAttribute("stroke-dasharray", "4"); line.setAttribute("opacity", "0.6");
+            line.setAttribute("stroke", "#ff0044"); line.setAttribute("stroke-width", (w/150).toString()); line.setAttribute("stroke-dasharray", "4"); line.setAttribute("opacity", "0.6");
             svg.appendChild(line);
         }
         for(let y = cellSize; y < h; y += cellSize) {
             const line = document.createElementNS(svgns, "line");
             line.setAttribute("x1", 0); line.setAttribute("y1", y); line.setAttribute("x2", w); line.setAttribute("y2", y);
-            line.setAttribute("stroke", "#ff0044"); line.setAttribute("stroke-width", (w/100).toString()); line.setAttribute("stroke-dasharray", "4"); line.setAttribute("opacity", "0.6");
+            line.setAttribute("stroke", "#ff0044"); line.setAttribute("stroke-width", (w/150).toString()); line.setAttribute("stroke-dasharray", "4"); line.setAttribute("opacity", "0.6");
             svg.appendChild(line);
         }
         return svg;
     };
 
-    const updateGuides = (prefix, cropper) => {
-        if(!cropper) return;
-        const viewBox = cropper.cropper.querySelector('.cropper-view-box');
+    const updateGuides = (prefix, cropperObj) => {
+        if(!cropperObj || !cropperObj.cropper) return;
+        const viewBox = cropperObj.cropper.querySelector('.cropper-view-box');
         if(!viewBox) return;
         
-        viewBox.querySelectorAll('.guide-layer').forEach(e => e.remove());
+        viewBox.querySelectorAll('.guide-layer, .guide-grid, .guide-circle').forEach(e => e.remove());
+        
         const showGrid = document.getElementById(`${prefix}GuideGrid`)?.checked;
         const showCircle = document.getElementById(`${prefix}GuideCircle`)?.checked;
         
-        if(showGrid) viewBox.appendChild(createCocoforiaGrid(cropper.getData().width || 100, cropper.getData().height || 100));
-        if(showCircle && prefix === 'hs') viewBox.appendChild(document.getElementById('tpl-circle').content.cloneNode(true));
+        if(showGrid) {
+            if (prefix === 'hs') viewBox.appendChild(document.getElementById('tpl-grid-3x3').content.cloneNode(true));
+            else viewBox.appendChild(createSquareGrid(cropperObj.getData().width || 100, cropperObj.getData().height || 100));
+        }
+        if(showCircle && prefix === 'hs') {
+            viewBox.appendChild(document.getElementById('tpl-circle').content.cloneNode(true));
+        }
     };
 
     ['hs', 'pt', 'ci'].forEach(prefix => {
         setupColorControls(prefix);
         document.getElementById(`${prefix}FineZoom`)?.addEventListener('change', e => {
-            const r = e.target.checked ? 0.02 : 0.5;
+            const r = e.target.checked ? 0.02 : 0.4;
             if(prefix==='hs' && cropperHeadshot) cropperHeadshot.options.wheelZoomRatio = r;
             if(prefix==='pt' && cropperPortrait) cropperPortrait.options.wheelZoomRatio = r;
             if(prefix==='ci' && cropperCutin) cropperCutin.options.wheelZoomRatio = r;
@@ -458,14 +504,17 @@
             if(prefix==='pt') updateGuides('pt', cropperPortrait);
             if(prefix==='ci') updateGuides('ci', cropperCutin);
         });
-        document.getElementById(`${prefix}GuideCircle`)?.addEventListener('change', () => updateGuides('hs', cropperHeadshot));
+        document.getElementById(`${prefix}GuideCircle`)?.addEventListener('change', () => {
+            if(prefix==='hs') updateGuides('hs', cropperHeadshot);
+        });
     });
     
-    // 콜라주는 줌 감도만 적용
+    // 콜라주는 줌 감도만
     document.getElementById('colFineZoom')?.addEventListener('change', e => {
-        if(cropperCollage) cropperCollage.options.wheelZoomRatio = e.target.checked ? 0.02 : 0.5;
+        if(cropperCollage) cropperCollage.options.wheelZoomRatio = e.target.checked ? 0.02 : 0.4;
     });
 
+    // 빈 프레임 렌더링
     updateCanvasBoxSize('hsBox', 1, 1); updateCanvasBoxSize('ptBox', 460, 800); updateCanvasBoxSize('colBox', 460, 460); updateCanvasBoxSize('ciBox', 1200, 400);
 
 
@@ -473,11 +522,15 @@
        3. 탭 1: 두상 로직
        ============================== */
     const loadHs = async () => {
-        const zoomRatio = document.getElementById('hsFineZoom').checked ? 0.02 : 0.5;
-        cropperHeadshot = await spawnCropper('hsBox', headshotFile, 1, 1, 'hsImgW', { wheelZoomRatio: zoomRatio }, c => {
-            updateGuides('hs', c);
+        if (!headshotFile) return;
+        if (cropperHeadshot) cropperHeadshot.destroy();
+        const zoomRatio = document.getElementById('hsFineZoom').checked ? 0.02 : 0.4;
+        
+        const c = await spawnCropperSafe(headshotFile, 'hsBox', 1, 1, 'hsImgW', { wheelZoomRatio: zoomRatio }, inst => {
+            updateGuides('hs', inst);
             document.getElementById('btnCropHeadshot').disabled = false;
         });
+        if (c) cropperHeadshot = c; else flags.hs = true;
     };
 
     document.getElementById('fileHeadshot').addEventListener('change', e => {
@@ -496,24 +549,32 @@
        4. 탭 2: 반신 스탠딩 & 콜라주
        ============================== */
     const loadPt = async () => {
+        if(!portraitFiles.length) return;
+        if(cropperPortrait) cropperPortrait.destroy();
         const w = parseInt(document.getElementById('portraitW').value) || 460, h = parseInt(document.getElementById('portraitH').value) || 800;
-        const zoomRatio = document.getElementById('ptFineZoom').checked ? 0.02 : 0.5;
-        cropperPortrait = await spawnCropper('ptBox', portraitFiles[0], w, h, 'ptImgW', { rotatable: true, wheelZoomRatio: zoomRatio }, c => {
-            updateGuides('pt', c);
+        const zoomRatio = document.getElementById('ptFineZoom').checked ? 0.02 : 0.4;
+        
+        const c = await spawnCropperSafe(portraitFiles[0], 'ptBox', w, h, 'ptImgW', { rotatable: true, wheelZoomRatio: zoomRatio }, inst => {
+            updateGuides('pt', inst);
             document.getElementById('btnCropPortrait').disabled = false;
         });
+        if (c) cropperPortrait = c; else flags.pt = true;
     };
 
     const loadCol = async () => {
+        if(!portraitFiles.length) return;
+        if(cropperCollage) cropperCollage.destroy();
         const w = parseInt(document.getElementById('colW').value) || 460;
         const h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value) || 460);
-        const zoomRatio = document.getElementById('colFineZoom').checked ? 0.02 : 0.5;
-        cropperCollage = await spawnCropper('colBox', portraitFiles[0], w, h, 'colImgW', { rotatable: true, wheelZoomRatio: zoomRatio }, c => {
+        const zoomRatio = document.getElementById('colFineZoom').checked ? 0.02 : 0.4;
+        
+        const c = await spawnCropperSafe(portraitFiles[0], 'colBox', w, h, 'colImgW', { rotatable: true, wheelZoomRatio: zoomRatio }, inst => {
             document.getElementById('btnGeneratePreview').disabled = false;
         });
+        if (c) cropperCollage = c; else flags.col = true;
     };
 
-    document.getElementById('filePortrait').addEventListener('change', async e => {
+    document.getElementById('filePortrait').addEventListener('change', e => {
         portraitFiles = Array.from(e.target.files);
         if(!portraitFiles.length) return;
         document.getElementById('portraitFileCount').innerText = `선택된 파일: ${portraitFiles.length}개`;
@@ -521,8 +582,10 @@
         document.getElementById('portraitRotateSlider').value = 0; document.getElementById('rotateValue').innerText = "0°";
         document.getElementById('colRotateSlider').value = 0; document.getElementById('colRotateValue').innerText = "0°";
         
-        loadPt();
-        loadCol();
+        flags.pt = true; flags.col = true;
+        const activeSub = document.querySelector('.sub-tab-btn.active').dataset.sub;
+        if (activeSub === 'sub-pt-sync') { loadPt(); flags.pt = false; }
+        else { loadCol(); flags.col = false; }
     });
 
     document.getElementById('ptSquareToggle').addEventListener('change', e => {
@@ -577,16 +640,14 @@
 
         for (let file of portraitFiles) {
             const img = await loadImageBlob(file); 
-            const wrapper = document.createElement('div'); wrapper.style.width = '800px';
-            const hImg = document.createElement('img'); hImg.src = img.src; hImg.style.display = 'block'; hImg.style.maxWidth = '100%';
-            wrapper.appendChild(hImg); offC.appendChild(wrapper);
+            const hImg = document.createElement('img'); hImg.src = img.src; hImg.style.display = 'block'; hImg.style.maxWidth = '100%'; offC.appendChild(hImg);
 
             await new Promise(res => {
-                new Cropper(hImg, { ...baseCropperOptions, aspectRatio: w/h, ready() {
+                new Cropper(hImg, { ...baseCropperOptions, background: false, aspectRatio: w/h, ready() {
                     this.setData(data);
                     this.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' })
                         .toBlob(b => { 
-                            zip.file(file.name, b); // 원본 파일명 그대로 유지
+                            zip.file(file.name, b); // 원본 파일명 유지
                             this.destroy(); offC.innerHTML = ''; res(); 
                         }, 'image/png');
                 }});
@@ -612,12 +673,10 @@
 
         for (let [idx, file] of portraitFiles.entries()) {
             const img = await loadImageBlob(file); 
-            const wrapper = document.createElement('div'); wrapper.style.width = '800px';
-            const hImg = document.createElement('img'); hImg.src = img.src; hImg.style.display = 'block'; hImg.style.maxWidth = '100%';
-            wrapper.appendChild(hImg); offC.appendChild(wrapper);
+            const hImg = document.createElement('img'); hImg.src = img.src; hImg.style.display = 'block'; hImg.style.maxWidth = '100%'; offC.appendChild(hImg);
 
             await new Promise(res => {
-                new Cropper(hImg, { ...baseCropperOptions, aspectRatio: w/h, ready() {
+                new Cropper(hImg, { ...baseCropperOptions, background: false, aspectRatio: w/h, ready() {
                     this.setData(data);
                     const b64 = this.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' }).toDataURL();
                     
@@ -712,12 +771,16 @@
        6. 탭 3: 컷인 로직
        ============================== */
     const loadCi = async () => {
+        if (!cutinFile) return;
+        if(cropperCutin) cropperCutin.destroy();
         const w = parseInt(document.getElementById('cutinW').value) || 1200, h = parseInt(document.getElementById('cutinH').value) || 400;
-        const zoomRatio = document.getElementById('ciFineZoom').checked ? 0.02 : 0.5;
-        cropperCutin = await spawnCropper('ciBox', cutinFile, w, h, 'ciImgW', { wheelZoomRatio: zoomRatio }, c => {
-            updateGuides('ci', c);
+        const zoomRatio = document.getElementById('ciFineZoom').checked ? 0.02 : 0.4;
+        
+        const c = await spawnCropperSafe(cutinFile, 'ciBox', w, h, 'ciImgW', { wheelZoomRatio: zoomRatio }, inst => {
+            updateGuides('ci', inst);
             document.getElementById('btnCropCutin').disabled = false;
         });
+        if (c) cropperCutin = c; else flags.ci = true;
     };
 
     document.getElementById('fileCutin').addEventListener('change', e => {
