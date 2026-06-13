@@ -92,30 +92,37 @@
         .item-controls button { flex: 1; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); }
         .item-controls button:hover { background: #e2e8f0; }
 
-        /* ===== Cropper.js 완전 클린 모드 =====
-           crop box = 캔버스 전체. 선/그림자/오버레이 전부 제거.
-           미리보기에 보이는 그대로 저장됩니다. */
+        /* ===== Cropper.js 클린 모드 =====
+           드래그/줌 이벤트는 살리고, 시각적 UI 요소만 제거합니다. */
 
-        /* 바깥 어두운 오버레이 제거 */
-        .cropper-modal { display: none !important; }
-
-        /* crop box 테두리·핸들·중앙점·가이드선 모두 제거 */
+        /* crop box 테두리 선 제거 */
         .cropper-view-box {
             outline: none !important;
             box-shadow: none !important;
             border: none !important;
             transition: background-color 0.2s;
         }
+
+        /* 바깥 어두운 오버레이 제거 */
+        .cropper-modal { background: transparent !important; opacity: 0 !important; }
+
+        /* 격자 점선·핸들 포인트·중앙 십자·가이드라인만 숨김 */
         .cropper-dashed,
         .cropper-point,
         .cropper-line,
-        .cropper-center,
-        .cropper-face { display: none !important; }
+        .cropper-center { display: none !important; }
 
-        /* crop box 영역 자체는 투명 유지 (이미지만 보임) */
+        /* cropper-face: 드래그 이벤트 수신 요소 — display:none 하면 이동 불가
+           투명하게만 유지 (절대 display:none 금지) */
+        .cropper-face {
+            background: transparent !important;
+            opacity: 1 !important;
+        }
+
+        /* crop box 배경 투명 */
         .cropper-crop-box { background: transparent !important; }
 
-        /* 배경(checker) 패턴은 canvas-box-wrap 에서만 표시 */
+        /* 체커 배경은 canvas-box-wrap CSS에서만 표시 */
         .cropper-bg { display: none !important; }
 
         /* 팝업 모달 */
@@ -397,8 +404,8 @@
     let globalSideScale = 1.0; // 전신 이미지 배율 (휠로만 조절)
 
     const BASE_OPTS = {
-        // viewMode 2: 이미지가 crop box를 항상 가득 채움 → 미리보기 = 저장 결과
-        viewMode: 2,
+        // viewMode 0: 이미지를 자유롭게 드래그/줌 가능 (위치 조정 됨)
+        viewMode: 0,
         dragMode: 'move',
         autoCropArea: 1,
         cropBoxMovable: false,
@@ -706,7 +713,7 @@
                     img.style.maxWidth = '100%'; img.style.display = 'block';
                     img.onload = () => {
                         new Cropper(img, {
-                            viewMode: 2, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
+                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
                             center: false, guides: false, highlight: false, background: false, aspectRatio: w / h,
                             minContainerWidth: 0, minContainerHeight: 0,
                             ready() {
@@ -880,7 +887,7 @@
                     img.style.maxWidth = '100%'; img.style.display = 'block';
                     img.onload = () => {
                         new Cropper(img, {
-                            viewMode: 2, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
+                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
                             center: false, guides: false, highlight: false, background: false, aspectRatio: w / h,
                             minContainerWidth: 0, minContainerHeight: 0,
                             ready() {
