@@ -202,7 +202,7 @@
                     <label>회전 각도 조절</label>
                     <div class="input-group" style="width: 100%;">
                         <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
-                        <span id="rotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
+                        <span id="ptRotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
                     </div>
                     <div class="btn-row" style="margin-top: 10px;">
                         <button class="sub-btn" onclick="rotateManual('pt', -90)">↺ -90°</button>
@@ -307,7 +307,7 @@
                         <input type="checkbox" id="ciFineZoom"><label for="ciFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 세밀하게</label>
                     </div>
                 </div>
-                <button id="btnCropCutin" class="action-btn" disabled margin-top="auto">컷인 이미지 다운로드</button>
+                <button id="btnCropCutin" class="action-btn" disabled>컷인 이미지 다운로드</button>
             </div>
         </div>
     </div>
@@ -349,7 +349,7 @@
         a.style.display = 'none';
         a.href = url;
         a.download = name;
-        document.body.appendChild(a); // DOM 트리 필수 부착
+        document.body.appendChild(a);
         a.click();
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     };
@@ -365,7 +365,6 @@
        3. 완벽한 가이드라인 시스템 (크로퍼 간섭 0%)
        ================================================== */
     const getGridSVG = (w, h) => {
-        // 코코포리아는 정사각형 1칸이므로 넓이를 기준으로 10칸 쪼갬
         let svg = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%; height:100%;">`;
         const size = w / 10; 
         for(let x=size; x<w; x+=size) svg += `<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="#2563eb" stroke-dasharray="4" opacity="0.6"/>`;
@@ -392,7 +391,7 @@
     const renderOverlay = (type) => {
         const overlay = document.getElementById(`${type}Overlay`);
         if(!overlay) return;
-        overlay.innerHTML = ''; // 초기화
+        overlay.innerHTML = '';
         
         const showGrid = document.getElementById(`${type}GuideGrid`)?.checked;
         const showCircle = document.getElementById(`${type}GuideCircle`)?.checked;
@@ -410,10 +409,9 @@
     };
 
     /* ==================================================
-       4. 크로퍼 안전 초기화 함수 (에러 없는 구조)
+       4. 크로퍼 안전 초기화 함수
        ================================================== */
     const loadCropper = (type) => {
-        // 활성화된 탭이 아니면 생성을 보류 (크로퍼 0x0 버그 방지)
         const isTab1 = document.getElementById('tab-headshot').classList.contains('active');
         const isTab2 = document.getElementById('tab-portrait').classList.contains('active');
         const isTab3 = document.getElementById('tab-cutin').classList.contains('active');
@@ -422,11 +420,11 @@
         if ((type === 'pt' || type === 'col') && !isTab2) return;
         if (type === 'ci' && !isTab3) return;
 
-        let file, imgId, btnId, w, h, extraOpts = {}, cropperRef;
-        if (type === 'hs') { file = f_hs; imgId = 'imgHeadshot'; btnId = 'btnCropHeadshot'; w = 1; h = 1; cropperRef = c_hs; }
-        if (type === 'pt') { file = f_pt[0]; imgId = 'imgPortrait'; btnId = 'btnCropPortrait'; w = parseInt(document.getElementById('portraitW').value)||460; h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value)||800); extraOpts.rotatable = true; cropperRef = c_pt; }
-        if (type === 'col') { file = f_pt[0]; imgId = 'imgCollage'; btnId = 'btnGeneratePreview'; w = parseInt(document.getElementById('colW').value)||460; h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value)||460); extraOpts.rotatable = true; cropperRef = c_col; }
-        if (type === 'ci') { file = f_ci; imgId = 'imgCutin'; btnId = 'btnCropCutin'; w = parseInt(document.getElementById('cutinW').value)||1200; h = parseInt(document.getElementById('cutinH').value)||400; cropperRef = c_ci; }
+        let file, imgId, btnId, w, h, extraOpts = {};
+        if (type === 'hs') { file = f_hs; imgId = 'imgHeadshot'; btnId = 'btnCropHeadshot'; w = 1; h = 1; }
+        if (type === 'pt') { file = f_pt[0]; imgId = 'imgPortrait'; btnId = 'btnCropPortrait'; w = parseInt(document.getElementById('portraitW').value)||460; h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value)||800); extraOpts.rotatable = true; }
+        if (type === 'col') { file = f_pt[0]; imgId = 'imgCollage'; btnId = 'btnGeneratePreview'; w = parseInt(document.getElementById('colW').value)||460; h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value)||460); extraOpts.rotatable = true; }
+        if (type === 'ci') { file = f_ci; imgId = 'imgCutin'; btnId = 'btnCropCutin'; w = parseInt(document.getElementById('cutinW').value)||1200; h = parseInt(document.getElementById('cutinH').value)||400; }
 
         if (!file) return;
 
@@ -434,14 +432,19 @@
         renderOverlay(type);
 
         const img = document.getElementById(imgId);
-        if (cropperRef) cropperRef.destroy();
+
+        // ★ 버그 수정: 기존 크로퍼 destroy 후 ref 초기화
+        if (type === 'hs' && c_hs) { c_hs.destroy(); c_hs = null; }
+        if (type === 'pt' && c_pt) { c_pt.destroy(); c_pt = null; }
+        if (type === 'col' && c_col) { c_col.destroy(); c_col = null; }
+        if (type === 'ci' && c_ci) { c_ci.destroy(); c_ci = null; }
 
         img.onload = () => {
             const zRatio = document.getElementById(`${type}FineZoom`)?.checked ? 0.03 : 0.4;
             const newCropper = new Cropper(img, {
                 ...BASE_OPTS, ...extraOpts, aspectRatio: w / h, wheelZoomRatio: zRatio,
                 ready() {
-                    const inst = this;
+                    const inst = this.cropper;
                     const zoomInput = document.getElementById(`${type}ImgW`);
                     if(zoomInput) {
                         zoomInput.value = Math.round(inst.getImageData().width);
@@ -452,18 +455,20 @@
                             if(nw) inst.zoomTo(nw / inst.getImageData().naturalWidth);
                         });
                     }
-                    if(document.getElementById(btnId)) document.getElementById(btnId).disabled = false;
+                    // ★ 버그 수정: ready 콜백 안에서 전역 ref 할당 후 버튼 활성화
+                    if (type === 'hs') c_hs = inst;
+                    if (type === 'pt') c_pt = inst;
+                    if (type === 'col') c_col = inst;
+                    if (type === 'ci') c_ci = inst;
+
+                    const btn = document.getElementById(btnId);
+                    if(btn) btn.disabled = false;
                 },
                 zoom(e) {
                     const el = document.getElementById(`${type}ImgW`);
                     if(el) el.value = Math.round(this.getImageData().naturalWidth * e.detail.ratio);
                 }
             });
-
-            if (type === 'hs') c_hs = newCropper;
-            if (type === 'pt') c_pt = newCropper;
-            if (type === 'col') c_col = newCropper;
-            if (type === 'ci') c_ci = newCropper;
         };
         img.src = URL.createObjectURL(file);
     };
@@ -476,7 +481,6 @@
             document.getElementById(targetId).classList.add('active');
             e.target.classList.add('active');
             
-            // 탭이 열리면 다시 로드
             if(targetId === 'tab-headshot') loadCropper('hs');
             if(targetId === 'tab-portrait') { loadCropper('pt'); loadCropper('col'); }
             if(targetId === 'tab-cutin') loadCropper('ci');
@@ -487,23 +491,20 @@
        5. 공통 설정 동기화
        ================================================== */
     ['hs', 'pt', 'col', 'ci'].forEach(type => {
-        // 배경색
         const chk = document.getElementById(`${type}Transparent`), grp = document.getElementById(`${type}ColorGroup`);
         const pck = document.getElementById(`${type}ColorPicker`), hex = document.getElementById(`${type}HexInput`);
         if(chk && grp) {
             chk.addEventListener('change', () => { grp.style.opacity = chk.checked ? '0.5' : '1'; grp.style.pointerEvents = chk.checked ? 'none' : 'auto'; });
-            pck.addEventListener('input', e => hex.value = e.target.value);
-            hex.addEventListener('input', e => { let v = e.target.value; if(!v.startsWith('#')) v = '#' + v; e.target.value = v; if(/^#[0-9A-F]{6}$/i.test(v)) pck.value = v; });
+            pck?.addEventListener('input', e => hex.value = e.target.value);
+            hex?.addEventListener('input', e => { let v = e.target.value; if(!v.startsWith('#')) v = '#' + v; e.target.value = v; if(/^#[0-9A-F]{6}$/i.test(v)) pck.value = v; });
         }
         
-        // 감도
         document.getElementById(`${type}FineZoom`)?.addEventListener('change', e => {
             const r = e.target.checked ? 0.03 : 0.4;
             let c = type === 'hs' ? c_hs : (type === 'pt' ? c_pt : (type === 'col' ? c_col : c_ci));
             if(c) c.options.wheelZoomRatio = r;
         });
 
-        // 가이드
         document.getElementById(`${type}GuideGrid`)?.addEventListener('change', () => renderOverlay(type));
         document.getElementById(`${type}GuideCircle`)?.addEventListener('change', () => renderOverlay(type));
     });
@@ -522,7 +523,7 @@
         if(!c_hs) return;
         const color = document.getElementById('hsTransparent').checked ? 'transparent' : document.getElementById('hsColorPicker').value;
         const canvas = c_hs.getCroppedCanvas({ fillColor: color, imageSmoothingQuality: 'high' });
-        if(canvas) canvas.toBlob(b => safeDownloadBlob(b, f_hs.name)); // 원본명 유지
+        if(canvas) canvas.toBlob(b => safeDownloadBlob(b, f_hs.name));
     });
 
     // [탭 3]
@@ -543,7 +544,7 @@
         if(!e.target.files.length) return;
         f_pt = Array.from(e.target.files);
         document.getElementById('portraitFileCount').innerText = `선택된 파일: ${f_pt.length}개`;
-        document.getElementById('portraitRotateSlider').value = 0; document.getElementById('rotateValue').innerText = "0°";
+        document.getElementById('portraitRotateSlider').value = 0; document.getElementById('ptRotateValue').innerText = "0°";
         document.getElementById('colRotateSlider').value = 0; document.getElementById('colRotateValue').innerText = "0°";
         
         loadCropper('pt'); loadCropper('col');
@@ -571,22 +572,29 @@
         if(f_pt.length) loadCropper('col'); 
     }));
 
-    // 회전 조절
+    // ★ 버그 수정: rotateManual/resetManual의 ID 참조 통일
     window.rotateManual = (type, deg) => {
         let c = type === 'pt' ? c_pt : c_col; if(!c) return;
-        const sld = document.getElementById(`${type === 'pt' ? 'portrait' : 'col'}RotateSlider`);
+        const sldId = type === 'pt' ? 'portraitRotateSlider' : 'colRotateSlider';
+        const valId = type === 'pt' ? 'ptRotateValue' : 'colRotateValue';
+        const sld = document.getElementById(sldId);
         let v = parseInt(sld.value) + deg; if(v > 180) v -= 360; if(v < -180) v += 360;
-        sld.value = v; document.getElementById(`${type === 'pt' ? '' : 'col'}RotateValue`).innerText = `${v}°`;
+        sld.value = v; document.getElementById(valId).innerText = `${v}°`;
         c.rotateTo(v);
     };
     window.resetManual = (type) => {
         let c = type === 'pt' ? c_pt : c_col; if(!c) return;
-        document.getElementById(`${type === 'pt' ? 'portrait' : 'col'}RotateSlider`).value = 0;
-        document.getElementById(`${type === 'pt' ? '' : 'col'}RotateValue`).innerText = "0°";
-        c.reset(); document.getElementById(`${type}ImgW`).value = Math.round(c.getImageData().width);
+        const sldId = type === 'pt' ? 'portraitRotateSlider' : 'colRotateSlider';
+        const valId = type === 'pt' ? 'ptRotateValue' : 'colRotateValue';
+        const imgWId = type === 'pt' ? 'ptImgW' : 'colImgW';
+        document.getElementById(sldId).value = 0;
+        document.getElementById(valId).innerText = "0°";
+        c.reset();
+        document.getElementById(imgWId).value = Math.round(c.getImageData().width);
     };
+
     document.getElementById('portraitRotateSlider').addEventListener('input', e => {
-        document.getElementById('rotateValue').innerText = `${e.target.value}°`;
+        document.getElementById('ptRotateValue').innerText = `${e.target.value}°`;
         if(c_pt) c_pt.rotateTo(parseInt(e.target.value));
     });
     document.getElementById('colRotateSlider').addEventListener('input', e => {
@@ -595,7 +603,7 @@
     });
 
     /* ==================================================
-       7. ZIP 다운로드 엔진 (에러 완전 차단형)
+       7. ZIP 다운로드 엔진
        ================================================== */
     document.getElementById('btnCropPortrait').addEventListener('click', async function() {
         if (!c_pt || f_pt.length === 0) return;
@@ -607,7 +615,6 @@
             const cropData = c_pt.getData(); 
             const zip = new JSZip();
 
-            // 백그라운드 처리를 위한 임시 공간 (투명화 처리)
             const stage = document.createElement('div');
             stage.style.cssText = 'position:fixed; top:0; left:0; opacity:0.001; pointer-events:none; z-index:-9999;';
             document.body.appendChild(stage);
@@ -620,18 +627,18 @@
                         const tempCropper = new Cropper(img, {
                             viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false, center: false, guides: false, background: false, aspectRatio: w / h,
                             ready() {
-                                this.setData(cropData); 
-                                const canvas = this.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
+                                this.cropper.setData(cropData); 
+                                const canvas = this.cropper.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
                                 if(canvas) {
                                     canvas.toBlob(blob => {
-                                        zip.file(file.name, blob); // 원본 파일명 유지!
-                                        this.destroy(); stage.innerHTML = ''; resolve();
+                                        zip.file(file.name, blob);
+                                        this.cropper.destroy(); stage.innerHTML = ''; resolve();
                                     }, 'image/png');
-                                } else { this.destroy(); resolve(); }
+                                } else { this.cropper.destroy(); resolve(); }
                             }
                         });
                     };
-                    img.onerror = resolve; // 에러나도 스킵하고 진행
+                    img.onerror = resolve;
                     img.src = URL.createObjectURL(file);
                     stage.appendChild(img);
                 });
@@ -675,15 +682,15 @@
                         const tempCropper = new Cropper(img, {
                             viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false, center: false, guides: false, background: false, aspectRatio: w / h,
                             ready() {
-                                this.setData(cropData);
-                                const canvas = this.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
+                                this.cropper.setData(cropData);
+                                const canvas = this.cropper.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
                                 if(canvas) {
                                     const b64 = canvas.toDataURL();
                                     const item = document.createElement('div');
                                     item.className = 'collage-item'; item.draggable = true; item.dataset.id = idx;
                                     
                                     const pImg = document.createElement('img'); pImg.src = b64;
-                                    const pInput = document.createElement('input'); pInput.type = 'text'; pInput.value = getShortName(file.name); // 언더바 자동 추출!
+                                    const pInput = document.createElement('input'); pInput.type = 'text'; pInput.value = getShortName(file.name);
                                     
                                     const controls = document.createElement('div'); controls.className = 'item-controls';
                                     const btnL = document.createElement('button'); btnL.innerText = '◀';
@@ -695,7 +702,7 @@
                                     controls.append(btnL, btnR); item.append(pImg, pInput, controls);
                                     gridArea.appendChild(item);
                                 }
-                                this.destroy(); stage.innerHTML = ''; resolve();
+                                this.cropper.destroy(); stage.innerHTML = ''; resolve();
                             }
                         });
                     };
