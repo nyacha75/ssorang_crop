@@ -338,7 +338,7 @@
             </div>
 
             <div id="canvasWheelHint" style="text-align:center; font-size:12px; color:#94a3b8; margin-bottom:6px;">
-                💡 전신 이미지 위에서 마우스 휠로 배율 조절
+                💡 전신 이미지: 마우스 휠로 배율 조절 / 드래그로 위치 이동
             </div>
             <div style="text-align: center; margin-bottom: 20px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
                 <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
@@ -401,7 +401,9 @@
        ================================================== */
     let c_hs = null, c_pt = null, c_col = null, c_ci = null;
     let f_hs = null, f_pt = [], f_ci = null;
-    let globalSideScale = 1.0; // 전신 이미지 배율 (휠로만 조절)
+    let globalSideScale = 1.0;  // 전신 이미지 배율 (휠로 조절)
+    let sideOffsetX = 0;        // 전신 이미지 X 위치 오프셋 (드래그로 조절)
+    let sideOffsetY = 0;        // 전신 이미지 Y 위치 오프셋 (드래그로 조절)
 
     const BASE_OPTS = {
         // viewMode 0: 이미지를 자유롭게 드래그/줌 가능 (위치 조정 됨)
@@ -744,15 +746,59 @@
        8. 콜라주 생성 엔진
        ================================================== */
 
-    // 전신 이미지 위에서 휠로 배율 조절
-    document.getElementById('finalCollageCanvas').addEventListener('wheel', async (e) => {
-        const sideFile = document.getElementById('colSideImg').files[0];
-        if(!sideFile) return;
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.05 : 0.05;
-        globalSideScale = Math.max(0.1, Math.min(5.0, globalSideScale + delta));
-        await drawFinalCollage(false);
-    }, { passive: false });
+    // 전신 이미지: 휠 → 배율, 드래그 → 위치 조절
+    (function() {
+        const cvs = document.getElementById('finalCollageCanvas');
+        let isDragging = false, lastX = 0, lastY = 0;
+
+        cvs.addEventListener('wheel', async (e) => {
+            if(!document.getElementById('colSideImg').files[0]) return;
+            e.preventDefault();
+            // 캔버스 픽셀 vs CSS 픽셀 비율로 delta 보정
+            const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
+            const delta = e.deltaY > 0 ? -0.05 : 0.05;
+            globalSideScale = Math.max(0.1, Math.min(5.0, globalSideScale + delta));
+            await drawFinalCollage(false);
+        }, { passive: false });
+
+        cvs.addEventListener('mousedown', (e) => {
+            if(!document.getElementById('colSideImg').files[0]) return;
+            isDragging = true;
+            lastX = e.clientX; lastY = e.clientY;
+            cvs.style.cursor = 'grabbing';
+        });
+        window.addEventListener('mousemove', async (e) => {
+            if(!isDragging) return;
+            const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
+            sideOffsetX += (e.clientX - lastX) * ratio;
+            sideOffsetY += (e.clientY - lastY) * ratio;
+            lastX = e.clientX; lastY = e.clientY;
+            await drawFinalCollage(false);
+        });
+        window.addEventListener('mouseup', () => {
+            if(!isDragging) return;
+            isDragging = false;
+            cvs.style.cursor = 'grab';
+        });
+
+        // 터치 지원
+        cvs.addEventListener('touchstart', (e) => {
+            if(!document.getElementById('colSideImg').files[0]) return;
+            if(e.touches.length === 1) {
+                isDragging = true;
+                lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+        cvs.addEventListener('touchmove', async (e) => {
+            if(!isDragging || e.touches.length !== 1) return;
+            const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
+            sideOffsetX += (e.touches[0].clientX - lastX) * ratio;
+            sideOffsetY += (e.touches[0].clientY - lastY) * ratio;
+            lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+            await drawFinalCollage(false);
+        }, { passive: true });
+        cvs.addEventListener('touchend', () => { isDragging = false; });
+    })();
 
     async function drawFinalCollage(isDownload) {
         const items = document.querySelectorAll('.collage-item');
@@ -793,10 +839,10 @@
         ctx.fillStyle = '#ffffff'; 
         ctx.fillRect(0, 0, cvs.width, cvs.height);
         
-        // 전신 이미지: globalSideScale 으로만 배율 조절, 위치는 고정
+        // 전신 이미지: globalSideScale 배율 + sideOffsetX/Y 위치 적용
         if (sideImg) {
             ctx.save();
-            ctx.translate(gap + fixedSideW / 2, gap + fixedSideH / 2);
+            ctx.translate(gap + fixedSideW / 2 + sideOffsetX, gap + fixedSideH / 2 + sideOffsetY);
             ctx.scale(globalSideScale, globalSideScale);
             ctx.drawImage(sideImg, -fixedSideW / 2, -fixedSideH / 2, fixedSideW, fixedSideH);
             ctx.restore();
@@ -875,7 +921,9 @@
             const gridArea = document.getElementById('collageGrid');
             gridArea.innerHTML = ''; 
             document.getElementById('collagePreviewArea').style.display = 'block';
-            globalSideScale = 1.0; // 새 미리보기 생성 시 배율 초기화
+            globalSideScale = 1.0; // 새 미리보기 생성 시 배율·위치 초기화
+            sideOffsetX = 0;
+            sideOffsetY = 0;
 
             const stage = document.createElement('div');
             stage.style.cssText = 'position:fixed; top:0; left:0; opacity:0.001; pointer-events:none; z-index:-9999;';
