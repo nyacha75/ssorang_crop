@@ -44,13 +44,12 @@
         .canvas-box-wrap {
             position: relative; border: 3px solid var(--primary);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; background-color: #fff;
-            /* 배경 격자무늬 */
             background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
         .canvas-box-wrap img { display: block; max-width: 100%; }
         
-        /* 오버레이 가이드라인 (크로퍼 간섭 원천 차단) */
+        /* 오버레이 가이드라인 */
         .overlay-guide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
         
         /* 우측 컨트롤 패널 */
@@ -102,7 +101,7 @@
         .item-controls button { flex: 1; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); }
         .item-controls button:hover { background: #e2e8f0; }
 
-        /* ★ Cropper.js 불필요 박스 완전 삭제 (깔끔한 창문 형태) ★ */
+        /* Cropper.js 불필요 요소 제거 */
         .cropper-view-box { outline: none !important; transition: background-color 0.2s; }
         .cropper-modal, .cropper-bg, .cropper-face { background: transparent !important; opacity: 0 !important; }
         .cropper-point, .cropper-line, .cropper-center { display: none !important; }
@@ -144,7 +143,7 @@
                     </div>
                 </div>
                 <div>
-                    <label>3. 보조선 및 크기 조절</label>
+                    <label>3. 보조선 및 마우스 감도</label>
                     <div class="input-group" style="margin-bottom: 8px;">
                         <input type="checkbox" id="hsGuideCircle"><label for="hsGuideCircle" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">원형 가이드 (트위터 프사 꽉 차게)</label>
                         <input type="checkbox" id="hsGuideGrid" style="margin-left:10px;"><label for="hsGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드</label>
@@ -184,7 +183,7 @@
                     </div>
                 </div>
                 <div>
-                    <label>보조선 및 크기 조절</label>
+                    <label>보조선 및 마우스 감도</label>
                     <div class="input-group" style="margin-bottom: 8px;">
                         <input type="checkbox" id="ptGuideGrid"><label for="ptGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드 (코코포리아 정사각형 1칸)</label>
                     </div>
@@ -206,10 +205,6 @@
                 </div>
                 <div>
                     <label>저장 설정</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <label style="font-size:13px; font-weight:normal; width:80px; margin:0;">여백 추가(px)</label>
-                        <input type="number" id="ptMargin" value="0" style="flex:1;">
-                    </div>
                     <div class="input-group">
                         <label style="font-size:13px; font-weight:normal; width:80px; margin:0;">ZIP 파일명</label>
                         <input type="text" id="ptZipName" value="AhpuhVOID_Fighting" style="flex:1; width:100%;">
@@ -221,7 +216,7 @@
 
         <hr class="divider">
 
-        <h3 style="color: var(--primary); margin-bottom: 10px;">2-2. 포트레이트 모아보기 (콜라주)</h3>
+        <h3 style="color: var(--primary); margin-bottom: 10px;">2-2. 콜라주 모아보기</h3>
         <p class="help-text" style="margin-bottom: 15px;">위와 독립적으로 새롭게 크롭하여, <strong style="color:var(--primary);">_(언더바) 뒤 표정 이름</strong>이 자동으로 입력된 모음집을 만듭니다.</p>
         <div class="split-layout">
             <div class="split-left-wrapper">
@@ -240,7 +235,7 @@
                     </div>
                 </div>
                 <div>
-                    <label>크기 조절 및 회전</label>
+                    <label>마우스 감도 및 회전</label>
                     <div class="input-group" style="margin-bottom: 8px;">
                         <input type="checkbox" id="colFineZoom"><label for="colFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 세밀하게</label>
                     </div>
@@ -259,6 +254,7 @@
                     <div class="input-group" style="margin-bottom: 12px;">
                         <div><label style="font-size: 13px; margin-bottom:5px;">배치 열 수</label><input type="number" id="colCols" value="3" style="width: 60px;"></div>
                         <div><label style="font-size: 13px; margin-bottom:5px;">글자 색상</label><input type="color" id="colTextColor" value="#2563eb" style="width: 60px;"></div>
+                        <div><label style="font-size: 13px; margin-bottom:5px;">여백(px)</label><input type="number" id="colMargin" value="15" style="width: 60px;"></div>
                     </div>
                     <label style="font-size: 13px; margin-bottom:5px;">옆에 띄울 스탠딩 원본 (선택)</label>
                     <input type="file" id="colSideImg" accept="image/*">
@@ -276,31 +272,27 @@
             <div style="background: #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                 <div style="display:flex; gap:15px; flex-wrap: wrap; margin-bottom: 10px;">
                     <div style="flex:1;">
-                        <label style="font-size:13px; margin-bottom: 4px;">캐릭터 이름</label>
-                        <div class="input-group">
-                            <input type="text" id="colCharName" placeholder="이름 입력" style="flex:1; width:100%;">
-                            <input type="number" id="colCharSize" value="60" title="글자 크기">
-                        </div>
-                    </div>
-                    <div style="flex:1;">
                         <label style="font-size:13px; margin-bottom: 4px;">시나리오명</label>
                         <div class="input-group">
                             <input type="text" id="colScenarioName" placeholder="시나리오명 입력" style="flex:1; width:100%;">
-                            <input type="number" id="colScenarioSize" value="30" title="글자 크기">
+                            <input type="number" id="colScenarioSize" value="60" title="글자 크기">
+                        </div>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:13px; margin-bottom: 4px;">캐릭터 이름</label>
+                        <div class="input-group">
+                            <input type="text" id="colCharName" placeholder="이름 입력" style="flex:1; width:100%;">
+                            <input type="number" id="colCharSize" value="100" title="글자 크기">
                         </div>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label style="font-size:13px; margin:0; width:120px;">전신 크기 조절(%)</label>
-                    <input type="range" id="colSideScale" min="10" max="200" value="100">
-                    <span id="colSideScaleVal" style="font-size:13px; font-weight:bold;">100%</span>
-                </div>
-                <button id="btnUpdateFinalPreview" class="sub-btn" style="margin-top: 15px; width: 100%; background: var(--primary); color: white;">🔄 최종 이미지 미리보기 갱신</button>
+                <button id="btnUpdateFinalPreview" class="sub-btn" style="width: 100%; background: var(--primary); color: white;">🔄 최종 이미지 미리보기 갱신</button>
             </div>
 
-            <div style="text-align: center; margin-bottom: 20px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
-                <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
+            <div style="text-align: center; margin-bottom: 10px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
+                <canvas id="finalCollageCanvas" style="max-width: 100%; display: none; cursor: n-resize;"></canvas>
             </div>
+            <p style="text-align: center; font-size: 13px; color: #64748b; margin-bottom: 20px;">💡 미리보기 이미지 위에 마우스를 올리고 <strong>휠을 굴려 전신 스탠딩 크기를 조절</strong>할 수 있습니다.</p>
 
             <button id="btnDownloadCollage" class="action-btn">콜라주 최종 다운로드</button>
         </div>
@@ -335,7 +327,7 @@
                     </div>
                 </div>
                 <div>
-                    <label>보조선 및 크기 조절</label>
+                    <label>보조선 및 마우스 감도</label>
                     <div class="input-group" style="margin-bottom: 8px;">
                         <input type="checkbox" id="ciGuideGrid"><label for="ciGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드 (코코포리아 1칸 비율)</label>
                     </div>
@@ -358,11 +350,12 @@
        ================================================== */
     let c_hs = null, c_pt = null, c_col = null, c_ci = null;
     let f_hs = null, f_pt = [], f_ci = null;
+    let globalSideScale = 1.0; // 콜라주 전신 이미지 줌 배율
 
     const BASE_OPTS = {
         viewMode: 0, dragMode: 'move', autoCropArea: 1, cropBoxMovable: false, 
         cropBoxResizable: false, toggleDragModeOnDblclick: false, guides: false, 
-        center: false, background: false, wheelZoomRatio: 0.4 
+        center: false, background: false, wheelZoomRatio: 0.5 
     };
 
     /* ==================================================
@@ -398,7 +391,6 @@
         return `${b}${suffix}.png`;
     };
 
-    // 실시간 배경 미리보기 함수 (크로퍼의 viewBox 색상 변경)
     const updatePreviewBg = (type) => {
         const isTransparent = document.getElementById(`${type}Transparent`)?.checked;
         const color = document.getElementById(`${type}ColorPicker`)?.value;
@@ -456,7 +448,7 @@
     };
 
     /* ==================================================
-       4. 크로퍼 안전 초기화 함수
+       4. 크로퍼 초기화 엔진
        ================================================== */
     const loadCropper = (type) => {
         const isTab1 = document.getElementById('tab-headshot').classList.contains('active');
@@ -491,15 +483,12 @@
                 ...BASE_OPTS, ...extraOpts, aspectRatio: w / h, wheelZoomRatio: zRatio,
                 ready() {
                     const inst = this.cropper;
-                    
                     if (type === 'hs') c_hs = inst;
                     if (type === 'pt') c_pt = inst;
                     if (type === 'col') c_col = inst;
                     if (type === 'ci') c_ci = inst;
 
-                    // 배경색 미리보기 반영
                     updatePreviewBg(type);
-
                     const btn = document.getElementById(btnId);
                     if(btn) btn.disabled = false;
                 }
@@ -508,7 +497,7 @@
         img.src = URL.createObjectURL(file);
     };
 
-    // 탭 클릭 시 뷰 업데이트
+    // 탭 전환 시스템
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -557,10 +546,10 @@
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
     /* ==================================================
-       6. 탭별 액션 및 다운로드
+       6. 탭별 액션
        ================================================== */
     
-    // [탭 1] 두상
+    // [탭 1]
     document.getElementById('fileHeadshot').addEventListener('change', e => {
         if(!e.target.files.length) return; f_hs = e.target.files[0]; loadCropper('hs');
     });
@@ -572,7 +561,7 @@
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_hs.name, '_두상')));
     });
 
-    // [탭 3] 컷인
+    // [탭 3]
     document.getElementById('fileCutin').addEventListener('change', e => {
         if(!e.target.files.length) return; f_ci = e.target.files[0]; loadCropper('ci');
     });
@@ -586,7 +575,7 @@
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_ci.name, '_컷인')));
     });
 
-    // [탭 2] 반신 스탠딩 & 콜라주
+    // [탭 2]
     document.getElementById('filePortrait').addEventListener('change', e => {
         if(!e.target.files.length) return;
         f_pt = Array.from(e.target.files);
@@ -597,7 +586,6 @@
         loadCropper('pt'); loadCropper('col');
     });
 
-    // 2-1 옵션
     document.getElementById('ptSquareToggle').addEventListener('change', e => {
         document.getElementById('portraitH').disabled = e.target.checked;
         if(e.target.checked) document.getElementById('portraitH').value = document.getElementById('portraitW').value;
@@ -608,7 +596,6 @@
         if(f_pt.length) loadCropper('pt'); 
     }));
 
-    // 2-2 옵션
     document.getElementById('colSquareToggle').addEventListener('change', e => {
         document.getElementById('colH').disabled = e.target.checked;
         if(e.target.checked) document.getElementById('colH').value = document.getElementById('colW').value;
@@ -619,7 +606,7 @@
         if(f_pt.length) loadCropper('col'); 
     }));
 
-    // ★ 회전 메뉴얼
+    // 회전 메뉴얼
     window.rotateManual = (type, deg) => {
         let c = type === 'pt' ? c_pt : c_col; if(!c) return;
         const sldId = type === 'pt' ? 'portraitRotateSlider' : 'colRotateSlider';
@@ -648,7 +635,7 @@
     });
 
     /* ==================================================
-       7. ZIP 다운로드 엔진
+       7. ZIP 다운로드
        ================================================== */
     document.getElementById('btnCropPortrait').addEventListener('click', async function() {
         if (!c_pt || f_pt.length === 0) return;
@@ -657,7 +644,6 @@
         try {
             const w = parseInt(document.getElementById('portraitW').value) || 460;
             const h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value) || 800);
-            const margin = parseInt(document.getElementById('ptMargin').value) || 0;
             const customZipName = document.getElementById('ptZipName').value || "AhpuhVOID_Fighting";
             const cropData = c_pt.getData(); 
             const zip = new JSZip();
@@ -667,7 +653,7 @@
             document.body.appendChild(stage);
 
             for (let file of f_pt) {
-                await new Promise((resolve, reject) => {
+                await new Promise((resolve) => {
                     const img = new Image();
                     img.style.maxWidth = '100%'; img.style.display = 'block';
                     img.onload = () => {
@@ -677,16 +663,7 @@
                                 this.cropper.setData(cropData); 
                                 const canvas = this.cropper.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
                                 if(canvas) {
-                                    if(margin > 0) {
-                                        const mCvs = document.createElement('canvas');
-                                        mCvs.width = w + (margin * 2);
-                                        mCvs.height = h + (margin * 2);
-                                        const mCtx = mCvs.getContext('2d');
-                                        mCtx.drawImage(canvas, margin, margin);
-                                        mCvs.toBlob(blob => { zip.file(file.name, blob); this.cropper.destroy(); stage.innerHTML = ''; resolve(); }, 'image/png');
-                                    } else {
-                                        canvas.toBlob(blob => { zip.file(file.name, blob); this.cropper.destroy(); stage.innerHTML = ''; resolve(); }, 'image/png');
-                                    }
+                                    canvas.toBlob(blob => { zip.file(file.name, blob); this.cropper.destroy(); stage.innerHTML = ''; resolve(); }, 'image/png');
                                 } else { this.cropper.destroy(); resolve(); }
                             }
                         });
@@ -708,7 +685,7 @@
     });
 
     /* ==================================================
-       8. 콜라주 모아보기 생성 엔진
+       8. 콜라주 모아보기 렌더링 & 마우스 휠
        ================================================== */
     async function drawFinalCollage(isDownload) {
         const items = document.querySelectorAll('.collage-item');
@@ -718,7 +695,8 @@
         const h = document.getElementById('colSquareToggle').checked ? w : parseInt(document.getElementById('colH').value);
         const cols = parseInt(document.getElementById('colCols').value) || 3;
         const textColor = document.getElementById('colTextColor').value;
-        const gap = 15;
+        const colMargin = parseInt(document.getElementById('colMargin').value);
+        const gap = isNaN(colMargin) ? 15 : colMargin; // 여백 설정을 gap으로 적용
 
         const rows = Math.ceil(items.length / cols);
         const gridW = (cols * w) + ((cols - 1) * gap);
@@ -726,13 +704,12 @@
         
         let sideImg = null, sideW = 0, sideH = 0;
         const sideFile = document.getElementById('colSideImg').files[0];
-        const sideScale = parseInt(document.getElementById('colSideScale').value) / 100;
 
         if (sideFile) { 
             sideImg = new Image(); 
             await new Promise(r => { 
                 sideImg.onload = () => { 
-                    sideH = gridH * sideScale;
+                    sideH = gridH * globalSideScale; // 휠 스케일 반영
                     sideW = sideImg.naturalWidth * (sideH / sideImg.naturalHeight); 
                     r(); 
                 }; 
@@ -751,7 +728,9 @@
         ctx.fillStyle = '#ffffff'; 
         ctx.fillRect(0, 0, cvs.width, cvs.height);
         
-        if (sideImg) ctx.drawImage(sideImg, gap, gap, sideW, sideH);
+        if (sideImg) {
+            ctx.drawImage(sideImg, gap, gap, sideW, sideH);
+        }
 
         const offsetX = gap + (sideImg ? sideW + gap : 0);
         
@@ -779,36 +758,52 @@
             });
         }
         
-        // 텍스트 추가
-        const charName = document.getElementById('colCharName').value.trim() || '이름';
-        const charSize = parseInt(document.getElementById('colCharSize').value) || 60;
-        const scenarioName = document.getElementById('colScenarioName').value.trim() || '시나리오';
-        const scenarioSize = parseInt(document.getElementById('colScenarioSize').value) || 30;
+        // 시나리오명(위) -> 캐릭터명(아래) 순서로 렌더링
+        const scenarioName = document.getElementById('colScenarioName').value.trim();
+        const scenarioSize = parseInt(document.getElementById('colScenarioSize').value) || 60;
+        const charName = document.getElementById('colCharName').value.trim();
+        const charSize = parseInt(document.getElementById('colCharSize').value) || 100;
 
-        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
         let textY = gap;
         
-        if (charName !== '이름') {
-            ctx.font = `900 ${charSize}px "Pretendard", sans-serif`;
-            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
-            ctx.strokeText(charName, gap + 10, textY); ctx.fillStyle = textColor; ctx.fillText(charName, gap + 10, textY);
-            textY += charSize + 10;
-        }
-        if (scenarioName !== '시나리오') {
+        if (scenarioName) {
             ctx.font = `900 ${scenarioSize}px "Pretendard", sans-serif`;
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, scenarioSize * 0.2); ctx.lineJoin = 'round';
-            ctx.strokeText(scenarioName, gap + 10, textY); ctx.fillStyle = textColor; ctx.fillText(scenarioName, gap + 10, textY);
+            ctx.strokeText(scenarioName, gap + 10, textY);
+            ctx.fillStyle = textColor; ctx.fillText(scenarioName, gap + 10, textY);
+            textY += scenarioSize + 10;
+        }
+        if (charName) {
+            ctx.font = `900 ${charSize}px "Pretendard", sans-serif`;
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
+            ctx.strokeText(charName, gap + 10, textY);
+            ctx.fillStyle = textColor; ctx.fillText(charName, gap + 10, textY);
         }
 
         if (isDownload) {
-            let finalName = `${scenarioName}_${charName}_포트레이트 정리본.png`;
+            // 이름 조합해서 스마트 저장
+            let finalName = "";
+            if (scenarioName && charName) finalName = `${scenarioName}_${charName}_포트레이트 정리본.png`;
+            else if (scenarioName) finalName = `${scenarioName}_포트레이트 정리본.png`;
+            else if (charName) finalName = `${charName}_포트레이트 정리본.png`;
+            else finalName = `포트레이트 정리본.png`;
+            
             cvs.toBlob(b => { safeDownloadBlob(b, finalName); });
         }
         return cvs;
     }
 
-    document.getElementById('colSideScale').addEventListener('input', e => {
-        document.getElementById('colSideScaleVal').innerText = `${e.target.value}%`;
+    // 마우스 휠로 전신 스탠딩 확대/축소
+    document.getElementById('finalCollageCanvas').addEventListener('wheel', async function(e) {
+        const sideFile = document.getElementById('colSideImg').files[0];
+        if (!sideFile) return; // 전신 이미지가 있을 때만 작동
+        e.preventDefault(); // 스크롤 방지
+        
+        globalSideScale += e.deltaY > 0 ? -0.05 : 0.05;
+        globalSideScale = Math.max(0.1, Math.min(globalSideScale, 5.0)); // 10% ~ 500% 제한
+        await drawFinalCollage(false);
     });
 
     document.getElementById('btnGeneratePreview').addEventListener('click', async function() {
@@ -866,7 +861,7 @@
                 });
             }
             stage.remove();
-            await drawFinalCollage(false);
+            await drawFinalCollage(false); // 즉시 캔버스 업데이트
         } catch (e) {
             console.error(e);
         } finally {
@@ -894,7 +889,7 @@
     });
 
     document.getElementById('btnDownloadCollage').addEventListener('click', async function() {
-        this.innerText = '이미지 생성 중...'; this.disabled = true;
+        this.innerText = '이미지 다운로드 중...'; this.disabled = true;
         await drawFinalCollage(true);
         this.innerText = '콜라주 최종 다운로드'; this.disabled = false;
     });
