@@ -44,12 +44,13 @@
         .canvas-box-wrap {
             position: relative; border: 3px solid var(--primary);
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; background-color: #fff;
+            /* 배경 격자무늬 */
             background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
         .canvas-box-wrap img { display: block; max-width: 100%; }
         
-        /* 오버레이 가이드라인 */
+        /* 오버레이 가이드라인 (크로퍼 간섭 원천 차단) */
         .overlay-guide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
         
         /* 우측 컨트롤 패널 */
@@ -101,7 +102,7 @@
         .item-controls button { flex: 1; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); }
         .item-controls button:hover { background: #e2e8f0; }
 
-        /* Cropper.js 불필요 요소 제거 */
+        /* ★ Cropper.js 불필요 박스 완전 삭제 (깔끔한 창문 형태) ★ */
         .cropper-view-box { outline: none !important; transition: background-color 0.2s; }
         .cropper-modal, .cropper-bg, .cropper-face { background: transparent !important; opacity: 0 !important; }
         .cropper-point, .cropper-line, .cropper-center { display: none !important; }
@@ -205,6 +206,10 @@
                 </div>
                 <div>
                     <label>저장 설정</label>
+                    <div class="input-group" style="margin-bottom: 8px;">
+                        <label style="font-size:13px; font-weight:normal; width:80px; margin:0;">여백 추가(px)</label>
+                        <input type="number" id="ptMargin" value="0" style="flex:1;">
+                    </div>
                     <div class="input-group">
                         <label style="font-size:13px; font-weight:normal; width:80px; margin:0;">ZIP 파일명</label>
                         <input type="text" id="ptZipName" value="AhpuhVOID_Fighting" style="flex:1; width:100%;">
@@ -216,7 +221,7 @@
 
         <hr class="divider">
 
-        <h3 style="color: var(--primary); margin-bottom: 10px;">2-2. 콜라주 모아보기</h3>
+        <h3 style="color: var(--primary); margin-bottom: 10px;">2-2. 포트레이트 모아보기 (콜라주)</h3>
         <p class="help-text" style="margin-bottom: 15px;">위와 독립적으로 새롭게 크롭하여, <strong style="color:var(--primary);">_(언더바) 뒤 표정 이름</strong>이 자동으로 입력된 모음집을 만듭니다.</p>
         <div class="split-layout">
             <div class="split-left-wrapper">
@@ -286,13 +291,17 @@
                         </div>
                     </div>
                 </div>
-                <button id="btnUpdateFinalPreview" class="sub-btn" style="width: 100%; background: var(--primary); color: white;">🔄 최종 이미지 미리보기 갱신</button>
+                <div class="input-group">
+                    <label style="font-size:13px; margin:0; width:120px;">전신 크기 조절(%)</label>
+                    <input type="range" id="colSideScale" min="10" max="200" value="100">
+                    <span id="colSideScaleVal" style="font-size:13px; font-weight:bold;">100%</span>
+                </div>
+                <button id="btnUpdateFinalPreview" class="sub-btn" style="margin-top: 15px; width: 100%; background: var(--primary); color: white;">🔄 최종 이미지 미리보기 갱신</button>
             </div>
 
-            <div style="text-align: center; margin-bottom: 10px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
+            <div style="text-align: center; margin-bottom: 20px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
                 <canvas id="finalCollageCanvas" style="max-width: 100%; display: none; cursor: n-resize;"></canvas>
             </div>
-            <p style="text-align: center; font-size: 13px; color: #64748b; margin-bottom: 20px;">💡 미리보기 이미지 위에 마우스를 올리고 <strong>휠을 굴려 전신 스탠딩 크기를 조절</strong>할 수 있습니다.</p>
 
             <button id="btnDownloadCollage" class="action-btn">콜라주 최종 다운로드</button>
         </div>
@@ -350,12 +359,11 @@
        ================================================== */
     let c_hs = null, c_pt = null, c_col = null, c_ci = null;
     let f_hs = null, f_pt = [], f_ci = null;
-    let globalSideScale = 1.0; // 콜라주 전신 이미지 줌 배율
 
     const BASE_OPTS = {
         viewMode: 0, dragMode: 'move', autoCropArea: 1, cropBoxMovable: false, 
         cropBoxResizable: false, toggleDragModeOnDblclick: false, guides: false, 
-        center: false, background: false, wheelZoomRatio: 0.5 
+        center: false, background: false, wheelZoomRatio: 0.4 
     };
 
     /* ==================================================
@@ -448,7 +456,7 @@
     };
 
     /* ==================================================
-       4. 크로퍼 초기화 엔진
+       4. 크로퍼 안전 초기화 함수
        ================================================== */
     const loadCropper = (type) => {
         const isTab1 = document.getElementById('tab-headshot').classList.contains('active');
@@ -497,7 +505,7 @@
         img.src = URL.createObjectURL(file);
     };
 
-    // 탭 전환 시스템
+    // 탭 클릭 시 뷰 업데이트
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -546,7 +554,7 @@
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
     /* ==================================================
-       6. 탭별 액션
+       6. 탭별 액션 및 다운로드
        ================================================== */
     
     // [탭 1]
@@ -575,7 +583,7 @@
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_ci.name, '_컷인')));
     });
 
-    // [탭 2]
+    // [탭 2] 반신 스탠딩 & 콜라주
     document.getElementById('filePortrait').addEventListener('change', e => {
         if(!e.target.files.length) return;
         f_pt = Array.from(e.target.files);
@@ -586,6 +594,7 @@
         loadCropper('pt'); loadCropper('col');
     });
 
+    // 2-1 옵션
     document.getElementById('ptSquareToggle').addEventListener('change', e => {
         document.getElementById('portraitH').disabled = e.target.checked;
         if(e.target.checked) document.getElementById('portraitH').value = document.getElementById('portraitW').value;
@@ -596,6 +605,7 @@
         if(f_pt.length) loadCropper('pt'); 
     }));
 
+    // 2-2 옵션
     document.getElementById('colSquareToggle').addEventListener('change', e => {
         document.getElementById('colH').disabled = e.target.checked;
         if(e.target.checked) document.getElementById('colH').value = document.getElementById('colW').value;
@@ -635,7 +645,7 @@
     });
 
     /* ==================================================
-       7. ZIP 다운로드
+       7. ZIP 다운로드 엔진
        ================================================== */
     document.getElementById('btnCropPortrait').addEventListener('click', async function() {
         if (!c_pt || f_pt.length === 0) return;
@@ -685,7 +695,7 @@
     });
 
     /* ==================================================
-       8. 콜라주 모아보기 렌더링 & 마우스 휠
+       8. 콜라주 모아보기 생성 엔진
        ================================================== */
     async function drawFinalCollage(isDownload) {
         const items = document.querySelectorAll('.collage-item');
@@ -696,21 +706,21 @@
         const cols = parseInt(document.getElementById('colCols').value) || 3;
         const textColor = document.getElementById('colTextColor').value;
         const colMargin = parseInt(document.getElementById('colMargin').value);
-        const gap = isNaN(colMargin) ? 15 : colMargin; // 여백 설정을 gap으로 적용
+        const gap = isNaN(colMargin) ? 15 : colMargin; // 여백 설정을 gap으로 적용 (흰색 패딩)
 
         const rows = Math.ceil(items.length / cols);
         const gridW = (cols * w) + ((cols - 1) * gap);
         const gridH = (rows * h) + ((rows - 1) * gap);
         
-        let sideImg = null, sideW = 0, sideH = 0;
+        let sideImg = null, fixedSideW = 0, fixedSideH = 0; // 변수 이름 변경 (fixed)
         const sideFile = document.getElementById('colSideImg').files[0];
 
         if (sideFile) { 
             sideImg = new Image(); 
             await new Promise(r => { 
                 sideImg.onload = () => { 
-                    sideH = gridH * globalSideScale; // 휠 스케일 반영
-                    sideW = sideImg.naturalWidth * (sideH / sideImg.naturalHeight); 
+                    fixedSideH = gridH; // 고정된 영역 높이
+                    fixedSideW = sideImg.naturalWidth * (fixedSideH / sideImg.naturalHeight); // 비율 유지하며 고정된 영역 너비
                     r(); 
                 }; 
                 sideImg.src = URL.createObjectURL(sideFile); 
@@ -720,20 +730,32 @@
         const cvs = isDownload ? document.createElement('canvas') : document.getElementById('finalCollageCanvas');
         if (!isDownload) cvs.style.display = 'inline-block';
         
-        const maxH = Math.max(gridH, sideH || 0);
-        cvs.width = (sideImg ? sideW + gap : 0) + gridW + (gap * 2); 
+        // 캔버스 크기 계산 (globalSideScale에 의존하지 않음 -> 고정됨)
+        const maxH = gridH;
+        cvs.width = (sideImg ? fixedSideW + gap : 0) + gridW + (gap * 2); 
         cvs.height = maxH + (gap * 2);
         
         const ctx = cvs.getContext('2d');
+        
+        // 배경색 채우기 (흰색 패딩 생성)
         ctx.fillStyle = '#ffffff'; 
         ctx.fillRect(0, 0, cvs.width, cvs.height);
         
+        // 전신 이미지 그리기 (고정된 영역 내에서 이미지 *만* 확대/축소)
         if (sideImg) {
-            ctx.drawImage(sideImg, gap, gap, sideW, sideH);
+            ctx.save();
+            ctx.translate(gap + fixedSideW / 2, gap + fixedSideH / 2); // 고정된 영역의 중앙으로 이동
+            ctx.scale(globalSideScale, globalSideScale); // 휠 배율 적용
+            ctx.drawImage(sideImg, -fixedSideW / 2, -fixedSideH / 2, fixedSideW, fixedSideH); // 중앙에 그리기
+            ctx.restore();
+            // 이미지가 fixedSideW x fixedSideH 영역을 벗어나면 캔버스 테두리에 잘려 보입니다.
+            // 이것이 사용자가 원하는 "확대" 효과일 가능성이 높습니다.
         }
 
-        const offsetX = gap + (sideImg ? sideW + gap : 0);
+        // 콜라주 그리드 X 위치 (globalSideScale에 의존하지 않음 -> 고정됨)
+        const offsetX = gap + (sideImg ? fixedSideW + gap : 0);
         
+        // 개별 이미지 그리기
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             const imgSrc = item.querySelector('img').src;
@@ -758,24 +780,25 @@
             });
         }
         
-        // 시나리오명(위) -> 캐릭터명(아래) 순서로 렌더링
-        const scenarioName = document.getElementById('colScenarioName').value.trim();
-        const scenarioSize = parseInt(document.getElementById('colScenarioSize').value) || 60;
-        const charName = document.getElementById('colCharName').value.trim();
-        const charSize = parseInt(document.getElementById('colCharSize').value) || 100;
+        // 텍스트 그리기 (순서 및 크기 스왑)
+        const scenarioName = document.getElementById('colScenarioName').value.trim() || '시나리오';
+        const scenarioSize = parseInt(document.getElementById('colScenarioSize').value) || 60; // 60pt로 스왑
+        const charName = document.getElementById('colCharName').value.trim() || '이름';
+        const charSize = parseInt(document.getElementById('colCharSize').value) || 100; // 100pt로 스왑
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         let textY = gap;
         
-        if (scenarioName) {
+        // 시나리오명(위) -> 캐릭터명(아래)
+        if (scenarioName !== '시나리오') {
             ctx.font = `900 ${scenarioSize}px "Pretendard", sans-serif`;
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, scenarioSize * 0.2); ctx.lineJoin = 'round';
             ctx.strokeText(scenarioName, gap + 10, textY);
             ctx.fillStyle = textColor; ctx.fillText(scenarioName, gap + 10, textY);
             textY += scenarioSize + 10;
         }
-        if (charName) {
+        if (charName !== '이름') {
             ctx.font = `900 ${charSize}px "Pretendard", sans-serif`;
             ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
             ctx.strokeText(charName, gap + 10, textY);
@@ -785,26 +808,15 @@
         if (isDownload) {
             // 이름 조합해서 스마트 저장
             let finalName = "";
-            if (scenarioName && charName) finalName = `${scenarioName}_${charName}_포트레이트 정리본.png`;
-            else if (scenarioName) finalName = `${scenarioName}_포트레이트 정리본.png`;
-            else if (charName) finalName = `${charName}_포트레이트 정리본.png`;
+            if (scenarioName !== '시나리오' && charName !== '이름') finalName = `${scenarioName}_${charName}_포트레이트 정리본.png`;
+            else if (scenarioName !== '시나리오') finalName = `${scenarioName}_포트레이트 정리본.png`;
+            else if (charName !== '이름') finalName = `${charName}_포트레이트 정리본.png`;
             else finalName = `포트레이트 정리본.png`;
             
             cvs.toBlob(b => { safeDownloadBlob(b, finalName); });
         }
         return cvs;
     }
-
-    // 마우스 휠로 전신 스탠딩 확대/축소
-    document.getElementById('finalCollageCanvas').addEventListener('wheel', async function(e) {
-        const sideFile = document.getElementById('colSideImg').files[0];
-        if (!sideFile) return; // 전신 이미지가 있을 때만 작동
-        e.preventDefault(); // 스크롤 방지
-        
-        globalSideScale += e.deltaY > 0 ? -0.05 : 0.05;
-        globalSideScale = Math.max(0.1, Math.min(globalSideScale, 5.0)); // 10% ~ 500% 제한
-        await drawFinalCollage(false);
-    });
 
     document.getElementById('btnGeneratePreview').addEventListener('click', async function() {
         if (!c_col || f_pt.length === 0) return;
@@ -861,11 +873,11 @@
                 });
             }
             stage.remove();
-            await drawFinalCollage(false); // 즉시 캔버스 업데이트
+            await drawFinalCollage(false);
         } catch (e) {
             console.error(e);
         } finally {
-            btn.disabled = false; btn.innerText = '✨ 하단에 그리드 추출하기';
+            btn.disabled = false; btn.innerText = '✨ 하단에 그리드 미리보기 갱신';
         }
     });
 
@@ -889,7 +901,7 @@
     });
 
     document.getElementById('btnDownloadCollage').addEventListener('click', async function() {
-        this.innerText = '이미지 다운로드 중...'; this.disabled = true;
+        this.innerText = '이미지 생성 중...'; this.disabled = true;
         await drawFinalCollage(true);
         this.innerText = '콜라주 최종 다운로드'; this.disabled = false;
     });
