@@ -99,22 +99,12 @@
             border: none !important;
             transition: background-color 0.2s;
         }
-
-        /* 바깥 어두운 오버레이 제거 */
         .cropper-modal { background: transparent !important; opacity: 0 !important; }
-
-        /* [중요] 캔버스를 벗어나는 원본 이미지를 완전히 투명하게 숨김 (미리보기 규격 일치화) */
+        /* 캔버스를 벗어나는 원본 이미지를 완전히 투명하게 숨김 (미리보기 규격 일치화) */
         .cropper-canvas { opacity: 0 !important; }
 
-        .cropper-dashed,
-        .cropper-point,
-        .cropper-line,
-        .cropper-center { display: none !important; }
-
-        .cropper-face {
-            background: transparent !important;
-            opacity: 1 !important;
-        }
+        .cropper-dashed, .cropper-point, .cropper-line, .cropper-center { display: none !important; }
+        .cropper-face { background: transparent !important; opacity: 1 !important; }
         .cropper-crop-box { background: transparent !important; }
         .cropper-bg { display: none !important; }
 
@@ -524,8 +514,6 @@
                 ...BASE_OPTS, ...extraOpts, aspectRatio: w / h, wheelZoomRatio: zRatio,
                 ready() {
                     const inst = this.cropper;
-                    
-                    // [중요 수정사항] 크롭 박스를 캔버스 영역에 100% 강제 일치시킴
                     const cData = inst.getContainerData();
                     inst.setCropBoxData({
                         left: 0,
@@ -546,7 +534,6 @@
         img.src = URL.createObjectURL(file);
     };
 
-    // 탭 전환
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -675,7 +662,7 @@
     });
 
     /* ==================================================
-       7. ZIP 다운로드
+       7. ZIP 다운로드 (완벽 동기화 패치)
        ================================================== */
     document.getElementById('btnCropPortrait').addEventListener('click', () => {
         if (!c_pt || f_pt.length === 0) return;
@@ -691,13 +678,24 @@
 
         const btn = document.getElementById('btnCropPortrait');
         btn.disabled = true; btn.innerText = '압축 파일 생성 중...';
+        
         try {
             const w = parseInt(document.getElementById('portraitW').value) || 460;
             const h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value) || 800);
+            
+            // 미리보기의 정확한 상태값(크롭 좌표, 줌/위치) 가져오기
             const cropData = c_pt.getData(); 
+            const canvasData = c_pt.getCanvasData();
+            
+            // 가상 컨테이너가 참고할 원본 컨테이너의 가로/세로 길이
+            const wrapEl = document.getElementById('ptBoxWrap');
+            const boxW = wrapEl.offsetWidth;
+            const boxH = wrapEl.offsetHeight;
+
             const zip = new JSZip();
             const stage = document.createElement('div');
-            stage.style.cssText = 'position:fixed; top:0; left:0; opacity:0.001; pointer-events:none; z-index:-9999;';
+            // 미리보기 영역과 완전히 동일한 크기의 가상 추출 컨테이너 생성 (오차 방지)
+            stage.style.cssText = `position:fixed; top:0; left:0; width:${boxW}px; height:${boxH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
             document.body.appendChild(stage);
 
             for (let file of f_pt) {
@@ -708,9 +706,16 @@
                         new Cropper(img, {
                             viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
                             center: false, guides: false, highlight: false, background: false, aspectRatio: w / h,
-                            minContainerWidth: 0, minContainerHeight: 0,
+                            minContainerWidth: boxW, minContainerHeight: boxH, // 원본 컨테이너와 크기 강제 동기화
                             ready() {
-                                this.cropper.setData(cropData); 
+                                // 1. 크롭박스를 원본 컨테이너에 꽉 차게 설정
+                                const cData = this.cropper.getContainerData();
+                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cData.width, height: cData.height });
+                                // 2. 미리보기에서 설정한 이미지의 줌/위치 데이터 그대로 복사
+                                this.cropper.setCanvasData(canvasData);
+                                // 3. 정확한 자르기 좌표 복사
+                                this.cropper.setData(cropData);
+
                                 const canvas = this.cropper.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
                                 if(canvas) {
                                     canvas.toBlob(blob => { zip.file(file.name, blob); this.cropper.destroy(); stage.innerHTML = ''; resolve(); }, 'image/png');
@@ -734,7 +739,7 @@
     });
 
     /* ==================================================
-       8. 콜라주 생성 엔진
+       8. 콜라주 생성 엔진 (완벽 동기화 패치)
        ================================================== */
     (function() {
         const cvs = document.getElementById('finalCollageCanvas');
@@ -897,10 +902,17 @@
     document.getElementById('btnGeneratePreview').addEventListener('click', async function() {
         if (!c_col || f_pt.length === 0) return;
         const btn = this; btn.disabled = true; btn.innerText = '생성 중...';
+        
         try {
             const w = parseInt(document.getElementById('colW').value) || 460;
             const h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value) || 460);
+            
+            // 미리보기 좌표 및 규격 완벽 동기화
             const cropData = c_col.getData();
+            const canvasData = c_col.getCanvasData();
+            const wrapEl = document.getElementById('colBoxWrap');
+            const boxW = wrapEl.offsetWidth;
+            const boxH = wrapEl.offsetHeight;
             
             const gridArea = document.getElementById('collageGrid');
             gridArea.innerHTML = ''; 
@@ -910,7 +922,7 @@
             sideOffsetY = 0;
 
             const stage = document.createElement('div');
-            stage.style.cssText = 'position:fixed; top:0; left:0; opacity:0.001; pointer-events:none; z-index:-9999;';
+            stage.style.cssText = `position:fixed; top:0; left:0; width:${boxW}px; height:${boxH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
             document.body.appendChild(stage);
 
             for (let [idx, file] of f_pt.entries()) {
@@ -921,9 +933,13 @@
                         new Cropper(img, {
                             viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
                             center: false, guides: false, highlight: false, background: false, aspectRatio: w / h,
-                            minContainerWidth: 0, minContainerHeight: 0,
+                            minContainerWidth: boxW, minContainerHeight: boxH,
                             ready() {
+                                const cData = this.cropper.getContainerData();
+                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cData.width, height: cData.height });
+                                this.cropper.setCanvasData(canvasData);
                                 this.cropper.setData(cropData);
+
                                 const canvas = this.cropper.getCroppedCanvas({ width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' });
                                 if(canvas) {
                                     const b64 = canvas.toDataURL();
