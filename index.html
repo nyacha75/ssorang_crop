@@ -78,7 +78,6 @@
         input[type="range"] { flex: 1; cursor: pointer; }
         .file-count { font-size: 14px; font-weight: bold; color: var(--primary); margin-top: 8px; }
 
-        /* 다중 파일 리스트 UI 스타일 */
         .file-list-container {
             display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px;
             max-height: 120px; overflow-y: auto; padding: 10px;
@@ -208,21 +207,10 @@
 
     <div id="tab-portrait" class="tab-content">
         <div style="background: #fff; padding: 20px; border-radius: 10px; border: 2px dashed #cbd5e1; margin-bottom: 25px; text-align: center;">
-            <label style="font-size: 16px; color: var(--primary);">📥 표정 파일 모두 불러오기 및 추가 (다중 선택)</label>
+            <label style="font-size: 16px; color: var(--primary);">📥 원본 표정 파일 불러오기 및 추가 (다중 선택)</label>
             <p style="font-size:13px; color:#64748b; margin: 5px 0;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다.</p>
-            
             <input type="file" id="filePortrait" accept="image/*" multiple style="margin-top: 10px; border: none; background: #f8fafc; padding: 10px; width: 100%; cursor: pointer;">
-            
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button id="btnBackupSave" class="sub-btn" style="flex: none; padding: 8px 15px; width: auto; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">💾 목록 백업 (JSON)</button>
-                <label class="sub-btn" style="flex: none; padding: 8px 15px; cursor: pointer; margin: 0; width: auto; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
-                    📂 백업 불러오기
-                    <input type="file" id="importJson" accept=".json" style="display: none;">
-                </label>
-            </div>
-
             <div id="portraitFileCount" class="file-count" style="margin-top: 15px;">선택된 파일: 0개</div>
-            
             <div id="portraitFileList" class="file-list-container" style="display: none;"></div>
         </div>
 
@@ -271,8 +259,17 @@
 
         <hr class="divider">
 
-        <h3 style="color: var(--primary); margin-bottom: 10px;">2-2. 포트레이트 모아보기 (콜라주)</h3>
-        <p class="help-text" style="margin-bottom: 15px;">위와 독립적으로 새롭게 크롭하여, <strong style="color:var(--primary);">_(언더바) 뒤 표정 이름</strong>이 자동으로 입력된 모음집을 만듭니다.</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+            <h3 style="color: var(--primary); margin: 0;">2-2. 포트레이트 모아보기 (콜라주)</h3>
+            <div style="display: flex; gap: 8px;">
+                <button id="btnCollageBackup" class="sub-btn" style="padding: 6px 12px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">💾 설정 백업</button>
+                <label class="sub-btn" style="padding: 6px 12px; cursor: pointer; margin: 0; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                    📂 불러오기
+                    <input type="file" id="importCollageJson" accept=".json" style="display: none;">
+                </label>
+            </div>
+        </div>
+        <p class="help-text" style="margin-bottom: 15px;">위와 독립적으로 새롭게 크롭하여 표정 이름이 자동으로 입력된 모음집을 만듭니다. <strong>우측의 백업/불러오기 버튼</strong>으로 이름과 배치 상태를 그대로 저장할 수 있습니다.</p>
         <div class="split-layout">
             <div class="split-left-wrapper">
                 <div class="canvas-box-wrap" id="colBoxWrap">
@@ -653,7 +650,7 @@
     });
 
     // ==========================================
-    // [탭 2] 다중 파일 업로드, 목록 관리 및 백업
+    // [탭 2] 다중 파일 업로드 및 목록 관리
     // ==========================================
     const renderPortraitFileList = () => {
         const listEl = document.getElementById('portraitFileList');
@@ -690,7 +687,6 @@
             delBtn.onclick = () => {
                 f_pt.splice(index, 1);
                 renderPortraitFileList();
-                // 1번 인덱스 이미지가 지워졌다면 첫 번째 이미지로 크로퍼 리로드
                 if (index === 0 && f_pt.length > 0) {
                     loadCropper('pt'); loadCropper('col');
                 }
@@ -706,9 +702,8 @@
         if(!e.target.files.length) return;
         const isFirstLoad = f_pt.length === 0;
         
-        // 새로 추가된 파일들을 기존 목록에 병합
         f_pt = f_pt.concat(Array.from(e.target.files));
-        e.target.value = ''; // 재선택 가능하게 인풋 초기화
+        e.target.value = ''; 
         
         renderPortraitFileList();
 
@@ -718,76 +713,6 @@
             loadCropper('pt'); loadCropper('col');
         }
     });
-
-    // 백업 저장 (JSON)
-    document.getElementById('btnBackupSave').addEventListener('click', async () => {
-        if(f_pt.length === 0) {
-            alert("저장할 이미지가 없습니다.");
-            return;
-        }
-        
-        const backupData = [];
-        for (let file of f_pt) {
-            const base64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.readAsDataURL(file);
-            });
-            backupData.push({ name: file.name, data: base64 });
-        }
-        
-        const jsonString = JSON.stringify(backupData);
-        const blob = new Blob([jsonString], { type: "application/json" });
-        safeDownloadBlob(blob, "Ssorang_Standing_Backup.json");
-    });
-
-    // 백업 불러오기 (JSON)
-    document.getElementById('importJson').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                if(!Array.isArray(data)) throw new Error("잘못된 백업 파일 형식입니다.");
-                
-                const isFirstLoad = f_pt.length === 0;
-                let addedCount = 0;
-
-                data.forEach(item => {
-                    if(item.name && item.data) {
-                        const arr = item.data.split(',');
-                        const mime = arr[0].match(/:(.*?);/)[1];
-                        const bstr = atob(arr[1]);
-                        let n = bstr.length;
-                        const u8arr = new Uint8Array(n);
-                        while(n--){
-                            u8arr[n] = bstr.charCodeAt(n);
-                        }
-                        const newFile = new File([u8arr], item.name, { type: mime });
-                        f_pt.push(newFile);
-                        addedCount++;
-                    }
-                });
-
-                renderPortraitFileList();
-                
-                if (isFirstLoad && f_pt.length > 0) {
-                    document.getElementById('portraitRotateSlider').value = 0; document.getElementById('ptRotateValue').innerText = "0°";
-                    document.getElementById('colRotateSlider').value = 0; document.getElementById('colRotateValue').innerText = "0°";
-                    loadCropper('pt'); loadCropper('col');
-                }
-                
-                alert(`백업 파일에서 ${addedCount}개의 이미지를 불러왔습니다.`);
-            } catch (err) {
-                alert("백업을 불러오는 중 오류가 발생했습니다: " + err.message);
-            }
-        };
-        reader.readAsText(file);
-        e.target.value = ''; // 초기화
-    });
-
 
     // 스탠딩 설정 동기화
     document.getElementById('ptSquareToggle').addEventListener('change', e => {
@@ -915,8 +840,139 @@
     });
 
     /* ==================================================
-       8. 콜라주 생성 엔진
+       8. 콜라주 생성 엔진 및 전용 백업 기능
        ================================================== */
+    
+    // 콜라주 세팅 백업 다운로드
+    document.getElementById('btnCollageBackup').addEventListener('click', async () => {
+        const items = document.querySelectorAll('.collage-item');
+        if (items.length === 0) {
+            alert('저장할 콜라주 조각이 없습니다. 먼저 [미리보기 갱신]을 진행해주세요.');
+            return;
+        }
+
+        const collageData = [];
+        items.forEach(item => {
+            collageData.push({
+                src: item.querySelector('img').src,
+                name: item.querySelector('input').value
+            });
+        });
+
+        const settings = {
+            w: document.getElementById('colW').value,
+            h: document.getElementById('colH').value,
+            square: document.getElementById('colSquareToggle').checked,
+            cols: document.getElementById('colCols').value,
+            textColor: document.getElementById('colTextColor').value,
+            margin: document.getElementById('colMargin').value,
+            scenarioName: document.getElementById('colScenarioName').value,
+            scenarioSize: document.getElementById('colScenarioSize').value,
+            charName: document.getElementById('colCharName').value,
+            charSize: document.getElementById('colCharSize').value,
+            globalSideScale: globalSideScale,
+            sideOffsetX: sideOffsetX,
+            sideOffsetY: sideOffsetY
+        };
+
+        let sideImageBase64 = null;
+        const sideFile = document.getElementById('colSideImg').files[0];
+        if (sideFile) {
+            sideImageBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(sideFile);
+            });
+        }
+
+        const backupObj = {
+            type: "ssorang_collage_v1",
+            items: collageData,
+            settings: settings,
+            sideImage: sideImageBase64
+        };
+
+        const blob = new Blob([JSON.stringify(backupObj)], { type: "application/json" });
+        safeDownloadBlob(blob, "Ssorang_Collage_Backup.json");
+    });
+
+    // 콜라주 세팅 백업 불러오기
+    document.getElementById('importCollageJson').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if(data.type !== "ssorang_collage_v1") {
+                    throw new Error("올바른 쏘랑 커팅기 콜라주 백업 파일이 아닙니다.");
+                }
+
+                // 1. 값 복구
+                document.getElementById('colW').value = data.settings.w;
+                document.getElementById('colH').value = data.settings.h;
+                document.getElementById('colSquareToggle').checked = data.settings.square;
+                document.getElementById('colH').disabled = data.settings.square;
+                document.getElementById('colCols').value = data.settings.cols;
+                document.getElementById('colTextColor').value = data.settings.textColor;
+                document.getElementById('colMargin').value = data.settings.margin;
+                document.getElementById('colScenarioName').value = data.settings.scenarioName;
+                document.getElementById('colScenarioSize').value = data.settings.scenarioSize;
+                document.getElementById('colCharName').value = data.settings.charName;
+                document.getElementById('colCharSize').value = data.settings.charSize;
+                
+                globalSideScale = data.settings.globalSideScale || 1.0;
+                sideOffsetX = data.settings.sideOffsetX || 0;
+                sideOffsetY = data.settings.sideOffsetY || 0;
+
+                // 2. 전신 이미지 복구
+                if (data.sideImage) {
+                    const arr = data.sideImage.split(',');
+                    const mime = arr[0].match(/:(.*?);/)[1];
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+                    const restoredFile = new File([u8arr], "side_image_backup.png", { type: mime });
+                    const dt = new DataTransfer();
+                    dt.items.add(restoredFile);
+                    document.getElementById('colSideImg').files = dt.files;
+                } else {
+                    document.getElementById('colSideImg').value = '';
+                }
+
+                // 3. 콜라주 아이템(표정 리스트) 복구
+                const gridArea = document.getElementById('collageGrid');
+                gridArea.innerHTML = '';
+                
+                data.items.forEach((itemData, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'collage-item'; item.draggable = true; item.dataset.id = idx;
+                    const pImg = document.createElement('img'); pImg.src = itemData.src;
+                    const pInput = document.createElement('input'); pInput.type = 'text'; pInput.value = itemData.name;
+                    const controls = document.createElement('div'); controls.className = 'item-controls';
+                    const btnL = document.createElement('button'); btnL.innerText = '◀';
+                    const btnR = document.createElement('button'); btnR.innerText = '▶';
+                    btnL.onclick = () => { if(item.previousElementSibling) gridArea.insertBefore(item, item.previousElementSibling); };
+                    btnR.onclick = () => { if(item.nextElementSibling) gridArea.insertBefore(item.nextElementSibling, item); };
+                    controls.append(btnL, btnR); item.append(pImg, pInput, controls);
+                    gridArea.appendChild(item);
+                });
+
+                document.getElementById('collagePreviewArea').style.display = 'block';
+                await drawFinalCollage(false);
+                
+            } catch (err) {
+                alert("백업을 불러오는 중 오류가 발생했습니다: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // 재업로드를 위해 초기화
+    });
+
+
+    // 마우스 이벤트 (전신 이미지 조작)
     (function() {
         const cvs = document.getElementById('finalCollageCanvas');
         let isDragging = false, lastX = 0, lastY = 0;
