@@ -39,7 +39,9 @@
             border-radius: 10px; display: flex; align-items: center; justify-content: center;
         }
         .canvas-box-wrap {
-            position: relative; border: 3px solid var(--primary);
+            position: relative; 
+            border: 3px solid var(--primary);
+            box-sizing: content-box; /* 오차 방지를 위해 강제 지정 */
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
             background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
@@ -389,19 +391,28 @@
         center: false,
         background: false,
         wheelZoomRatio: 0.4,
-        minContainerWidth: 0,
-        minContainerHeight: 0,
     };
 
     /* ==================================================
-       2. 유틸리티
+       2. 유틸리티 (소수점 오차 방지 로직 적용)
        ================================================== */
     const resizeCanvasBox = (type, w, h) => {
         const box = document.getElementById(`${type}BoxWrap`);
         if (!box) return;
         const ratio = w / h;
-        if (ratio > 1) { box.style.width = '450px'; box.style.height = (450 / ratio) + 'px'; } 
-        else { box.style.height = '450px'; box.style.width = (450 * ratio) + 'px'; }
+        let tw, th;
+        
+        // CSS 컨테이너를 완벽한 정수 픽셀로 강제하여 소수점 여백 제거
+        if (ratio > 1) { 
+            tw = 450; 
+            th = Math.round(450 / ratio); 
+        } else { 
+            th = 450; 
+            tw = Math.round(450 * ratio); 
+        }
+        
+        box.style.width = tw + 'px'; 
+        box.style.height = th + 'px';
     };
 
     const safeDownloadBlob = (blob, name) => {
@@ -475,7 +486,7 @@
     };
 
     /* ==================================================
-       4. 크로퍼 초기화
+       4. 크로퍼 초기화 (비율 오차 방지 적용)
        ================================================== */
     const loadCropper = (type) => {
         const isTab1 = document.getElementById('tab-headshot').classList.contains('active');
@@ -502,18 +513,22 @@
         if (type === 'ci' && c_ci) { c_ci.destroy(); c_ci = null; }
 
         img.onload = () => {
+            const box = document.getElementById(`${type}BoxWrap`);
+            const cW = box.clientWidth;
+            const cH = box.clientHeight;
             const zRatio = document.getElementById(`${type}FineZoom`)?.checked ? 0.03 : 0.4;
+            
             new Cropper(img, {
-                ...BASE_OPTS, ...extraOpts, aspectRatio: w / h, wheelZoomRatio: zRatio,
+                ...BASE_OPTS, ...extraOpts, 
+                // Cropper 자체의 계산을 무시하고, 강제된 UI 컨테이너의 정수 픽셀 비율로 세팅
+                aspectRatio: cW / cH, 
+                wheelZoomRatio: zRatio,
+                minContainerWidth: cW,
+                minContainerHeight: cH,
                 ready() {
                     const inst = this.cropper;
-                    const cData = inst.getContainerData();
-                    inst.setCropBoxData({
-                        left: 0,
-                        top: 0,
-                        width: cData.width,
-                        height: cData.height
-                    });
+                    // 컨테이너 크기에 100% 꽉 맞물리도록 강제 동기화 (틈새 완벽 제거)
+                    inst.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
 
                     if (type === 'hs') { c_hs = inst; updateHsPreviewBg(); }
                     if (type === 'pt') c_pt = inst;
@@ -575,11 +590,8 @@
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
     /* ==================================================
-       6. 탭별 다운로드 액션 (개선된 화질 및 오차 제거)
+       6. 탭별 다운로드 액션 (크기 및 화질 복구)
        ================================================== */
-
-    // 중요: 캔버스 추출 로직 변경 - 사용자가 입력한 크기를 강제하지 않고, 실제 계산된 크기로 추출
-    // 이를 통해 오차를 없애고 브라우저 리사이징을 최소화하여 원본 화질을 유지합니다.
 
     // [탭 1] 두상
     document.getElementById('fileHeadshot').addEventListener('change', e => {
@@ -589,9 +601,7 @@
         if(!c_hs) return;
         const isTransparent = document.getElementById('hsTransparent').checked;
         const color = isTransparent ? 'transparent' : document.getElementById('hsColorPicker').value;
-        
-        // width, height 옵션을 생략하여 Cropper가 내부적으로 계산한 실제 크기로 캔버스 생성
-        const canvas = c_hs.getCroppedCanvas({ fillColor: color });
+        const canvas = c_hs.getCroppedCanvas({ fillColor: color, imageSmoothingQuality: 'high' });
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_hs.name, '_두상')));
     });
 
@@ -604,9 +614,10 @@
         if(!c_ci) return;
         const isTransparent = document.getElementById('ciTransparent').checked;
         const color = isTransparent ? 'transparent' : document.getElementById('ciColorPicker').value;
-        
-        // width, height 옵션을 생략하여 정확한 비율과 영역으로 추출
-        const canvas = c_ci.getCroppedCanvas({ fillColor: color });
+        const w = parseInt(document.getElementById('cutinW').value)||1200;
+        const h = parseInt(document.getElementById('cutinH').value)||400;
+        // 화질 유지 및 고정 크기 출력을 위해 width, height 값 명시
+        const canvas = c_ci.getCroppedCanvas({ width: w, height: h, fillColor: color, imageSmoothingQuality: 'high' });
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_ci.name, '_컷인')));
     });
 
@@ -665,7 +676,7 @@
     });
 
     /* ==================================================
-       7. ZIP 다운로드 (미리보기 완벽 동기화 및 화질 개선)
+       7. ZIP 다운로드 (미리보기 완벽 동기화 및 고정 크기 출력)
        ================================================== */
     document.getElementById('btnCropPortrait').addEventListener('click', () => {
         if (!c_pt) return;
@@ -683,31 +694,61 @@
         btn.disabled = true; btn.innerText = '압축 파일 생성 중...';
         
         try {
+            const w = parseInt(document.getElementById('portraitW').value) || 460;
+            const h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value) || 800);
+            
+            // 미리보기의 정확한 상태값(위치, 줌) 가져오기
+            const wrapEl = document.getElementById('ptBoxWrap');
+            const cW = wrapEl.clientWidth;
+            const cH = wrapEl.clientHeight;
+            const canvasData = c_pt.getCanvasData();
+
             const zip = new JSZip();
+            // 여러 파일을 크롭할 가상 공간 (미리보기 크기와 100% 동일)
+            const stage = document.createElement('div');
+            stage.style.cssText = `position:fixed; top:0; left:0; width:${cW}px; height:${cH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
+            document.body.appendChild(stage);
 
             for (let file of f_pt) {
                 await new Promise((resolve) => {
                     const img = new Image();
+                    img.style.display = 'block';
+                    img.style.maxWidth = '100%';
                     img.onload = () => {
-                        // width, height 옵션을 제거하여 크롭 박스와 100% 일치하는 크기, 원본 화질 유지
-                        const canvas = c_pt.getCroppedCanvas({
-                            fillColor: 'transparent'
+                        new Cropper(img, {
+                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
+                            center: false, guides: false, highlight: false, background: false, 
+                            aspectRatio: cW / cH,
+                            minContainerWidth: cW, minContainerHeight: cH,
+                            ready() {
+                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
+                                this.cropper.setCanvasData(canvasData); // 줌/위치 데이터 그대로 복사
+                                
+                                // 사용자가 지정한 크기(w, h)를 강제하여 작게 나오는 현상 방지 및 고화질 유지
+                                const canvas = this.cropper.getCroppedCanvas({ 
+                                    width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' 
+                                });
+                                
+                                if(canvas) {
+                                    canvas.toBlob(blob => { 
+                                        zip.file(file.name, blob); 
+                                        this.cropper.destroy(); 
+                                        stage.innerHTML = ''; 
+                                        resolve(); 
+                                    }, 'image/png');
+                                } else { 
+                                    this.cropper.destroy(); 
+                                    resolve(); 
+                                }
+                            }
                         });
-
-                        if(canvas) {
-                            canvas.toBlob(blob => {
-                                zip.file(file.name, blob);
-                                resolve();
-                            }, 'image/png');
-                        } else {
-                            resolve();
-                        }
                     };
                     img.onerror = resolve; 
                     img.src = URL.createObjectURL(file);
+                    stage.appendChild(img);
                 });
             }
-            
+            stage.remove();
             const zipBlob = await zip.generateAsync({ type: "blob" });
             safeDownloadBlob(zipBlob, customZipName + ".zip");
         } catch (e) {
@@ -718,9 +759,8 @@
     });
 
     /* ==================================================
-       8. 콜라주 생성 엔진 (미리보기 완벽 동기화 및 화질 개선)
+       8. 콜라주 생성 엔진 (미리보기 완벽 동기화 및 고정 크기 출력)
        ================================================== */
-
     (function() {
         const cvs = document.getElementById('finalCollageCanvas');
         let isDragging = false, lastX = 0, lastY = 0;
@@ -728,7 +768,6 @@
         cvs.addEventListener('wheel', async (e) => {
             if(!document.getElementById('colSideImg').files[0]) return;
             e.preventDefault();
-            const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             globalSideScale = Math.max(0.1, Math.min(5.0, globalSideScale + delta));
             await drawFinalCollage(false);
@@ -888,6 +927,11 @@
             const w = parseInt(document.getElementById('colW').value) || 460;
             const h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value) || 460);
             
+            const wrapEl = document.getElementById('colBoxWrap');
+            const cW = wrapEl.clientWidth;
+            const cH = wrapEl.clientHeight;
+            const canvasData = c_col.getCanvasData();
+            
             const gridArea = document.getElementById('collageGrid');
             gridArea.innerHTML = ''; 
             document.getElementById('collagePreviewArea').style.display = 'block';
@@ -895,35 +939,55 @@
             sideOffsetX = 0;
             sideOffsetY = 0;
 
+            const stage = document.createElement('div');
+            stage.style.cssText = `position:fixed; top:0; left:0; width:${cW}px; height:${cH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
+            document.body.appendChild(stage);
+
             for (let [idx, file] of f_pt.entries()) {
                 await new Promise((resolve) => {
                     const img = new Image();
+                    img.style.display = 'block';
+                    img.style.maxWidth = '100%';
                     img.onload = () => {
-                        // width, height 옵션 제거로 원본 화질 및 오차 방지
-                        const canvas = c_col.getCroppedCanvas({
-                            fillColor: 'transparent'
+                        new Cropper(img, {
+                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
+                            center: false, guides: false, highlight: false, background: false, 
+                            aspectRatio: cW / cH,
+                            minContainerWidth: cW, minContainerHeight: cH,
+                            ready() {
+                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
+                                this.cropper.setCanvasData(canvasData);
+                                
+                                const canvas = this.cropper.getCroppedCanvas({ 
+                                    width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' 
+                                });
+                                
+                                if(canvas) {
+                                    const b64 = canvas.toDataURL();
+                                    const item = document.createElement('div');
+                                    item.className = 'collage-item'; item.draggable = true; item.dataset.id = idx;
+                                    const pImg = document.createElement('img'); pImg.src = b64;
+                                    const pInput = document.createElement('input'); pInput.type = 'text'; pInput.value = getShortName(file.name);
+                                    const controls = document.createElement('div'); controls.className = 'item-controls';
+                                    const btnL = document.createElement('button'); btnL.innerText = '◀';
+                                    const btnR = document.createElement('button'); btnR.innerText = '▶';
+                                    btnL.onclick = () => { if(item.previousElementSibling) gridArea.insertBefore(item, item.previousElementSibling); };
+                                    btnR.onclick = () => { if(item.nextElementSibling) gridArea.insertBefore(item.nextElementSibling, item); };
+                                    controls.append(btnL, btnR); item.append(pImg, pInput, controls);
+                                    gridArea.appendChild(item);
+                                }
+                                this.cropper.destroy(); 
+                                stage.innerHTML = ''; 
+                                resolve();
+                            }
                         });
-
-                        if(canvas) {
-                            const b64 = canvas.toDataURL();
-                            const item = document.createElement('div');
-                            item.className = 'collage-item'; item.draggable = true; item.dataset.id = idx;
-                            const pImg = document.createElement('img'); pImg.src = b64;
-                            const pInput = document.createElement('input'); pInput.type = 'text'; pInput.value = getShortName(file.name);
-                            const controls = document.createElement('div'); controls.className = 'item-controls';
-                            const btnL = document.createElement('button'); btnL.innerText = '◀';
-                            const btnR = document.createElement('button'); btnR.innerText = '▶';
-                            btnL.onclick = () => { if(item.previousElementSibling) gridArea.insertBefore(item, item.previousElementSibling); };
-                            btnR.onclick = () => { if(item.nextElementSibling) gridArea.insertBefore(item.nextElementSibling, item); };
-                            controls.append(btnL, btnR); item.append(pImg, pInput, controls);
-                            gridArea.appendChild(item);
-                        }
-                        resolve();
                     };
                     img.onerror = resolve;
                     img.src = URL.createObjectURL(file);
+                    stage.appendChild(img);
                 });
             }
+            stage.remove();
             await drawFinalCollage(false);
         } catch (e) { console.error(e); }
         finally { btn.disabled = false; btn.innerText = '미리보기 갱신'; }
