@@ -259,17 +259,10 @@
 
         <hr class="divider">
 
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
-            <h3 style="color: var(--primary); margin: 0;">2-2. 포트레이트 모아보기 (콜라주)</h3>
-            <div style="display: flex; gap: 8px;">
-                <button id="btnCollageBackup" class="sub-btn" style="padding: 6px 12px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">💾 설정 백업</button>
-                <label class="sub-btn" style="padding: 6px 12px; cursor: pointer; margin: 0; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
-                    📂 불러오기
-                    <input type="file" id="importCollageJson" accept=".json" style="display: none;">
-                </label>
-            </div>
-        </div>
-        <p class="help-text" style="margin-bottom: 15px;">위와 독립적으로 새롭게 크롭하여 표정 이름이 자동으로 입력된 모음집을 만듭니다. <strong>우측의 백업/불러오기 버튼</strong>으로 이름과 배치 상태를 그대로 저장할 수 있습니다.</p>
+        <h3 style="color: var(--primary); margin-bottom: 6px;">2-2. 포트레이트 모아보기 (콜라주)</h3>
+        <p class="help-text" style="margin-bottom: 2px;">위와 독립적으로 새롭게 크롭하여 <strong style="color:var(--primary);">표정 이름이 자동으로 입력된</strong> 모음집을 만듭니다.</p>
+        <p style="font-size: 13px; color: #94a3b8; margin-top: 0; margin-bottom: 15px;">하단의 백업/불러오기 버튼으로 이름과 배치 상태를 그대로 저장할 수 있습니다.</p>
+        
         <div class="split-layout">
             <div class="split-left-wrapper">
                 <div class="canvas-box-wrap" id="colBoxWrap">
@@ -350,6 +343,14 @@
             </div>
 
             <button id="btnDownloadCollage" class="action-btn">포트레이트 모음집 다운로드</button>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button id="btnCollageBackup" class="sub-btn" style="flex: 1; padding: 12px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 15px;">💾 설정 백업 (JSON)</button>
+                <label class="sub-btn" style="flex: 1; padding: 12px; cursor: pointer; margin: 0; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 15px; text-align: center;">
+                    📂 설정 불러오기
+                    <input type="file" id="importCollageJson" accept=".json" style="display: none;">
+                </label>
+            </div>
         </div>
     </div>
 
