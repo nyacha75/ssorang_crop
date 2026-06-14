@@ -40,7 +40,7 @@
         }
         .canvas-box-wrap {
             position: relative; border: 3px solid var(--primary);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; /* background-color: #fff; */ /* 수정: 배경색 제거 */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
             background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
@@ -92,38 +92,14 @@
         .item-controls button { flex: 1; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); }
         .item-controls button:hover { background: #e2e8f0; }
 
-        /* ===== Cropper.js 클린 모드 =====
-           드래그/줌 이벤트는 살리고, 시각적 UI 요소만 제거합니다. */
-
-        /* crop box 테두리 선 제거 */
-        .cropper-view-box {
-            outline: none !important;
-            box-shadow: none !important;
-            border: none !important;
-            transition: background-color 0.2s;
-        }
-
-        /* 바깥 어두운 오버레이 제거 */
+        /* ===== Cropper.js 클린 모드 ===== */
+        .cropper-view-box { outline: none !important; box-shadow: none !important; border: none !important; transition: background-color 0.2s; }
         .cropper-modal { background: transparent !important; opacity: 0 !important; }
-
-        /* 격자 점선·핸들 포인트·중앙 십자·가이드라인만 숨김 */
-        .cropper-dashed,
-        .cropper-point,
-        .cropper-line,
-        .cropper-center { display: none !important; }
-
-        /* cropper-face: 드래그 이벤트 수신 요소 — display:none 하면 이동 불가
-           투명하게만 유지 (절대 display:none 금지) */
-        .cropper-face {
-            background: transparent !important;
-            opacity: 1 !important;
-        }
-
-        /* crop box 배경 투명 */
+        .cropper-canvas { opacity: 0 !important; } /* 바깥 영역 숨김 */
+        .cropper-dashed, .cropper-point, .cropper-line, .cropper-center { display: none !important; }
+        .cropper-face { background: transparent !important; opacity: 1 !important; }
         .cropper-crop-box { background: transparent !important; }
-
-        /* 체커 배경은 canvas-box-wrap CSS에서만 표시 */
-        /* .cropper-bg { display: none !important; } */ /* 수정: 주석 처리하여 배경 보이게 함 */
+        .cropper-bg { display: none !important; }
 
         /* 팝업 모달 */
         .modal-overlay {
@@ -397,12 +373,11 @@
        ================================================== */
     let c_hs = null, c_pt = null, c_col = null, c_ci = null;
     let f_hs = null, f_pt = [], f_ci = null;
-    let globalSideScale = 1.0;  // 전신 이미지 배율 (휠로 조절)
-    let sideOffsetX = 0;        // 전신 이미지 X 위치 오프셋 (드래그로 조절)
-    let sideOffsetY = 0;        // 전신 이미지 Y 위치 오프셋 (드래그로 조절)
+    let globalSideScale = 1.0; 
+    let sideOffsetX = 0;       
+    let sideOffsetY = 0;       
 
     const BASE_OPTS = {
-        // viewMode 0: 이미지를 자유롭게 드래그/줌 가능 (위치 조정 됨)
         viewMode: 0,
         dragMode: 'move',
         autoCropArea: 1,
@@ -448,20 +423,17 @@
         return `${b}${suffix}.png`;
     };
 
-    /* 두상 탭: canvas-box-wrap 배경색으로 투명/색상 미리보기 */
     const updateHsPreviewBg = () => {
         const isTransparent = document.getElementById('hsTransparent').checked;
         const color = document.getElementById('hsColorPicker').value;
         const wrap = document.getElementById('hsBoxWrap');
         if (!wrap) return;
         if (isTransparent) {
-            // 투명: 격자 패턴 복원
             wrap.style.backgroundColor = '';
             wrap.style.backgroundImage = "linear-gradient(45deg,#e2e8f0 25%,transparent 25%),linear-gradient(-45deg,#e2e8f0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e2e8f0 75%),linear-gradient(-45deg,transparent 75%,#e2e8f0 75%)";
             wrap.style.backgroundSize = '20px 20px';
             wrap.style.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
         } else {
-            // 단색: 격자 제거하고 배경색으로
             wrap.style.backgroundImage = 'none';
             wrap.style.backgroundColor = color;
         }
@@ -535,6 +507,14 @@
                 ...BASE_OPTS, ...extraOpts, aspectRatio: w / h, wheelZoomRatio: zRatio,
                 ready() {
                     const inst = this.cropper;
+                    const cData = inst.getContainerData();
+                    inst.setCropBoxData({
+                        left: 0,
+                        top: 0,
+                        width: cData.width,
+                        height: cData.height
+                    });
+
                     if (type === 'hs') { c_hs = inst; updateHsPreviewBg(); }
                     if (type === 'pt') c_pt = inst;
                     if (type === 'col') c_col = inst;
@@ -547,7 +527,6 @@
         img.src = URL.createObjectURL(file);
     };
 
-    // 탭 전환
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -596,9 +575,13 @@
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
     /* ==================================================
-       6. 탭별 다운로드 액션
+       6. 탭별 다운로드 액션 (개선된 화질 및 오차 제거)
        ================================================== */
-    // [탭 1] 두상 - 미리보기와 동일하게 다운로드
+
+    // 중요: 캔버스 추출 로직 변경 - 사용자가 입력한 크기를 강제하지 않고, 실제 계산된 크기로 추출
+    // 이를 통해 오차를 없애고 브라우저 리사이징을 최소화하여 원본 화질을 유지합니다.
+
+    // [탭 1] 두상
     document.getElementById('fileHeadshot').addEventListener('change', e => {
         if(!e.target.files.length) return; f_hs = e.target.files[0]; loadCropper('hs');
     });
@@ -606,7 +589,9 @@
         if(!c_hs) return;
         const isTransparent = document.getElementById('hsTransparent').checked;
         const color = isTransparent ? 'transparent' : document.getElementById('hsColorPicker').value;
-        const canvas = c_hs.getCroppedCanvas({ fillColor: color, imageSmoothingQuality: 'high' });
+        
+        // width, height 옵션을 생략하여 Cropper가 내부적으로 계산한 실제 크기로 캔버스 생성
+        const canvas = c_hs.getCroppedCanvas({ fillColor: color });
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_hs.name, '_두상')));
     });
 
@@ -619,9 +604,9 @@
         if(!c_ci) return;
         const isTransparent = document.getElementById('ciTransparent').checked;
         const color = isTransparent ? 'transparent' : document.getElementById('ciColorPicker').value;
-        const w = parseInt(document.getElementById('cutinW').value)||1200;
-        const h = parseInt(document.getElementById('cutinH').value)||400;
-        const canvas = c_ci.getCroppedCanvas({ width: w, height: h, fillColor: color, imageSmoothingQuality: 'high' });
+        
+        // width, height 옵션을 생략하여 정확한 비율과 영역으로 추출
+        const canvas = c_ci.getCroppedCanvas({ fillColor: color });
         if(canvas) canvas.toBlob(b => safeDownloadBlob(b, getNewFilename(f_ci.name, '_컷인')));
     });
 
@@ -680,12 +665,9 @@
     });
 
     /* ==================================================
-       7. ZIP 다운로드 (미리보기 완벽 동기화 패치)
+       7. ZIP 다운로드 (미리보기 완벽 동기화 및 화질 개선)
        ================================================== */
     document.getElementById('btnCropPortrait').addEventListener('click', () => {
-        // !!! 수정 !!!
-        // if (!c_pt || f_pt.length === 0) return; // 기존 코드
-        // c_pt를 직접 사용하므로, c_pt 존재 여부만 확인
         if (!c_pt) return;
         document.getElementById('zipNameModal').classList.add('open');
     });
@@ -699,52 +681,33 @@
 
         const btn = document.getElementById('btnCropPortrait');
         btn.disabled = true; btn.innerText = '압축 파일 생성 중...';
+        
         try {
-            const w = parseInt(document.getElementById('portraitW').value) || 460;
-            const h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value) || 800);
-            // !!! 수정 !!!
-            // const cropData = c_pt.getData(); // 기존 코드
-
             const zip = new JSZip();
-            // stage는 이제 필요 없음
-            // const stage = document.createElement('div');
-            // stage.style.cssText = 'position:fixed; top:0; left:0; opacity:0.001; pointer-events:none; z-index:-9999;';
-            // document.body.appendChild(stage);
 
             for (let file of f_pt) {
                 await new Promise((resolve) => {
                     const img = new Image();
-                    // img.style.maxWidth = '100%'; img.style.display = 'block'; // 필요 없음
                     img.onload = () => {
-                        // !!! 수정: 가상 cropper 생성 대신 화면의 cropper 직접 사용 !!!
-                        // new Cropper(img, { ... }); // 기존 코드 삭제
-
-                        // !!! 수정: 화면의 cropper 인스턴스 (c_pt)를 사용하여 캔버스 추출 !!!
+                        // width, height 옵션을 제거하여 크롭 박스와 100% 일치하는 크기, 원본 화질 유지
                         const canvas = c_pt.getCroppedCanvas({
-                            width: w, // 중요: 사용자가 입력한 실제 규격
-                            height: h, // 중요: 사용자가 입력한 실제 규격
-                            fillColor: 'transparent', // 투명 배경 유지
-                            imageSmoothingQuality: 'high'
-                            // 중요: viewMode: 0 이므로setData로 조정한 위치/줌이 유지됨
+                            fillColor: 'transparent'
                         });
 
                         if(canvas) {
                             canvas.toBlob(blob => {
                                 zip.file(file.name, blob);
-                                // c_pt는 파괴하지 않음 (화면 cropper)
                                 resolve();
                             }, 'image/png');
                         } else {
-                            // 추출 실패 시 그냥 resolve (에러 처리 추가 고려 가능)
                             resolve();
                         }
                     };
-                    img.onerror = resolve; // 로드 실패 시 resolve
+                    img.onerror = resolve; 
                     img.src = URL.createObjectURL(file);
-                    // stage.appendChild(img); // 필요 없음
                 });
             }
-            // stage.remove(); // 필요 없음
+            
             const zipBlob = await zip.generateAsync({ type: "blob" });
             safeDownloadBlob(zipBlob, customZipName + ".zip");
         } catch (e) {
@@ -755,10 +718,9 @@
     });
 
     /* ==================================================
-       8. 콜라주 생성 엔진 (미리보기 완벽 동기화 패치)
+       8. 콜라주 생성 엔진 (미리보기 완벽 동기화 및 화질 개선)
        ================================================== */
 
-    // 전신 이미지: 휠 → 배율, 드래그 → 위치 조절
     (function() {
         const cvs = document.getElementById('finalCollageCanvas');
         let isDragging = false, lastX = 0, lastY = 0;
@@ -766,7 +728,6 @@
         cvs.addEventListener('wheel', async (e) => {
             if(!document.getElementById('colSideImg').files[0]) return;
             e.preventDefault();
-            // 캔버스 픽셀 vs CSS 픽셀 비율로 delta 보정
             const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             globalSideScale = Math.max(0.1, Math.min(5.0, globalSideScale + delta));
@@ -793,7 +754,6 @@
             cvs.style.cursor = 'grab';
         });
 
-        // 터치 지원
         cvs.addEventListener('touchstart', (e) => {
             if(!document.getElementById('colSideImg').files[0]) return;
             if(e.touches.length === 1) {
@@ -851,7 +811,6 @@
         ctx.fillStyle = '#ffffff'; 
         ctx.fillRect(0, 0, cvs.width, cvs.height);
         
-        // 전신 이미지: globalSideScale 배율 + sideOffsetX/Y 위치 적용
         if (sideImg) {
             ctx.save();
             ctx.translate(gap + fixedSideW / 2 + sideOffsetX, gap + fixedSideH / 2 + sideOffsetY);
@@ -887,7 +846,6 @@
             });
         }
         
-        // 시나리오명 / 캐릭터명 텍스트
         const scenarioName = document.getElementById('colScenarioName').value.trim();
         const scenarioSize = parseInt(document.getElementById('colScenarioSize').value) || 60;
         const charName = document.getElementById('colCharName').value.trim();
@@ -930,36 +888,20 @@
             const w = parseInt(document.getElementById('colW').value) || 460;
             const h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value) || 460);
             
-            // !!! 수정 !!! 가상 컨테이너 생성 대신 화면 cropper 직접 사용
-            // 미리보기의 정확한 상태값(크롭 좌표, 줌/위치) 가져오기
-            // const cropData = c_col.getData(); // 기존 코드 삭제
-            
             const gridArea = document.getElementById('collageGrid');
             gridArea.innerHTML = ''; 
             document.getElementById('collagePreviewArea').style.display = 'block';
-            globalSideScale = 1.0; // 새 미리보기 생성 시 배율·위치 초기화
+            globalSideScale = 1.0; 
             sideOffsetX = 0;
             sideOffsetY = 0;
-
-            const stage = document.createElement('div');
-            stage.style.cssText = 'position:fixed; top:0; left:0; opacity:0.001; pointer-events:none; z-index:-9999;';
-            document.body.appendChild(stage);
 
             for (let [idx, file] of f_pt.entries()) {
                 await new Promise((resolve) => {
                     const img = new Image();
-                    img.style.maxWidth = '100%'; img.style.display = 'block';
                     img.onload = () => {
-                        // !!! 수정: 가상 cropper 생성 대신 화면의 cropper 직접 사용 !!!
-                        // new Cropper(img, { ... }); // 기존 코드 삭제
-
-                        // !!! 수정: 화면의 cropper 인스턴스 (c_col)를 사용하여 캔버스 추출 !!!
+                        // width, height 옵션 제거로 원본 화질 및 오차 방지
                         const canvas = c_col.getCroppedCanvas({
-                            width: w, // 중요: 사용자가 입력한 실제 규격
-                            height: h, // 중요: 사용자가 입력한 실제 규격
-                            fillColor: 'transparent', // 투명 배경 유지
-                            imageSmoothingQuality: 'high'
-                            // 중요: viewMode: 0 이므로 setData로 조정한 위치/줌이 유지됨
+                            fillColor: 'transparent'
                         });
 
                         if(canvas) {
@@ -976,15 +918,12 @@
                             controls.append(btnL, btnR); item.append(pImg, pInput, controls);
                             gridArea.appendChild(item);
                         }
-                        // this.cropper.destroy(); // 필요 없음
-                        stage.innerHTML = ''; resolve();
+                        resolve();
                     };
                     img.onerror = resolve;
                     img.src = URL.createObjectURL(file);
-                    stage.appendChild(img);
                 });
             }
-            stage.remove();
             await drawFinalCollage(false);
         } catch (e) { console.error(e); }
         finally { btn.disabled = false; btn.innerText = '미리보기 갱신'; }
@@ -996,7 +935,6 @@
         this.disabled = false; this.innerText = "🔄 최종 이미지 미리보기 갱신";
     });
 
-    // 드래그 앤 드롭 정렬
     const gridEl = document.getElementById('collageGrid');
     let draggedItem = null;
     gridEl.addEventListener('dragstart', e => { draggedItem = e.target.closest('.collage-item'); setTimeout(()=>draggedItem.style.opacity='0.5',0); });
