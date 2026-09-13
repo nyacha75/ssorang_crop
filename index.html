@@ -371,6 +371,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="input-group" style="margin-bottom: 12px;">
+                        <input type="checkbox" id="colVerticalText"><label for="colVerticalText" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">시나리오명 · 캐릭터 이름 세로쓰기 (세로쓰기 시 캐릭터 이름이 왼쪽에 먼저 옴)</label>
+                    </div>
                     <label style="font-size: 13px; margin-bottom:5px;">좌측에 삽입할 스탠딩(선택)</label>
                     <input type="file" id="colSideImg" accept="image/*">
                     <div class="input-group" style="margin-top: 8px;">
@@ -1423,6 +1426,7 @@
                 charName: document.getElementById('colCharName').value,
                 charSize: document.getElementById('colCharSize').value,
                 sideWidth: document.getElementById('colSideWidth').value,
+                verticalText: document.getElementById('colVerticalText').checked,
                 globalSideScale: globalSideScale,
                 sideOffsetX: sideOffsetX,
                 sideOffsetY: sideOffsetY
@@ -1500,6 +1504,7 @@
             document.getElementById('colCharName').value = data.settings.charName;
             document.getElementById('colCharSize').value = data.settings.charSize;
             document.getElementById('colSideWidth').value = data.settings.sideWidth || '';
+            document.getElementById('colVerticalText').checked = !!data.settings.verticalText;
             
             globalSideScale = data.settings.globalSideScale || 1.0;
             sideOffsetX = data.settings.sideOffsetX || 0;
@@ -1731,22 +1736,50 @@
         const scenarioSize = parseInt(document.getElementById('colScenarioSize').value) || 60;
         const charName = document.getElementById('colCharName').value.trim();
         const charSize = parseInt(document.getElementById('colCharSize').value) || 100;
+        const isVerticalText = document.getElementById('colVerticalText').checked;
 
         if (sideImg) {
-            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-            let textY = gap;
-            if (scenarioName) {
-                ctx.font = `900 ${scenarioSize}px ${fontFamily}`;
-                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, scenarioSize * 0.2); ctx.lineJoin = 'round';
-                ctx.strokeText(scenarioName, gap + 10, textY);
-                ctx.fillStyle = textColor; ctx.fillText(scenarioName, gap + 10, textY);
-                textY += scenarioSize + 10;
-            }
-            if (charName) {
-                ctx.font = `900 ${charSize}px ${fontFamily}`;
-                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
-                ctx.strokeText(charName, gap + 10, textY);
-                ctx.fillStyle = textColor; ctx.fillText(charName, gap + 10, textY);
+            if (isVerticalText) {
+                // 세로쓰기: 캐릭터 이름을 먼저(왼쪽) 배치하고, 시나리오명을 그 오른쪽 칸에 배치
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                const drawVerticalColumn = (text, centerX, fontSize) => {
+                    ctx.font = `900 ${fontSize}px ${fontFamily}`;
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, fontSize * 0.2); ctx.lineJoin = 'round';
+                    const lineHeight = fontSize * 1.05;
+                    let y = gap;
+                    for (const ch of Array.from(text)) {
+                        ctx.strokeText(ch, centerX, y);
+                        ctx.fillStyle = textColor;
+                        ctx.fillText(ch, centerX, y);
+                        y += lineHeight;
+                    }
+                };
+                let colX = gap + 10;
+                if (charName) {
+                    colX += charSize / 2;
+                    drawVerticalColumn(charName, colX, charSize);
+                    colX += charSize / 2 + 10;
+                }
+                if (scenarioName) {
+                    colX += scenarioSize / 2;
+                    drawVerticalColumn(scenarioName, colX, scenarioSize);
+                }
+            } else {
+                ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                let textY = gap;
+                if (scenarioName) {
+                    ctx.font = `900 ${scenarioSize}px ${fontFamily}`;
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, scenarioSize * 0.2); ctx.lineJoin = 'round';
+                    ctx.strokeText(scenarioName, gap + 10, textY);
+                    ctx.fillStyle = textColor; ctx.fillText(scenarioName, gap + 10, textY);
+                    textY += scenarioSize + 10;
+                }
+                if (charName) {
+                    ctx.font = `900 ${charSize}px ${fontFamily}`;
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
+                    ctx.strokeText(charName, gap + 10, textY);
+                    ctx.fillStyle = textColor; ctx.fillText(charName, gap + 10, textY);
+                }
             }
         }
 
@@ -1993,6 +2026,7 @@
         globalSideScale = 1.0; sideOffsetX = 0; sideOffsetY = 0;
         scheduleAutoPreview();
     });
+    document.getElementById('colVerticalText').addEventListener('change', scheduleAutoPreview);
 
     /* ==================================================
        8-1. 사용자 폰트 업로드
