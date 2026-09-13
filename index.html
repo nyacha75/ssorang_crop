@@ -373,6 +373,11 @@
                     </div>
                     <label style="font-size: 13px; margin-bottom:5px;">좌측에 삽입할 스탠딩(선택)</label>
                     <input type="file" id="colSideImg" accept="image/*">
+                    <div class="input-group" style="margin-top: 8px;">
+                        <label style="font-size: 13px; margin-bottom:0; white-space:nowrap;">가로 폭(px)</label>
+                        <input type="number" id="colSideWidth" placeholder="자동" style="width: 90px;">
+                        <span style="font-size:12px; color:#94a3b8;">비워두면 원본 비율대로 자동 계산돼요.</span>
+                    </div>
                 </div>
                 <div>
                     <label style="font-size: 13px; margin-bottom:5px;">사용자 폰트 업로드</label>
@@ -1417,6 +1422,7 @@
                 scenarioSize: document.getElementById('colScenarioSize').value,
                 charName: document.getElementById('colCharName').value,
                 charSize: document.getElementById('colCharSize').value,
+                sideWidth: document.getElementById('colSideWidth').value,
                 globalSideScale: globalSideScale,
                 sideOffsetX: sideOffsetX,
                 sideOffsetY: sideOffsetY
@@ -1493,6 +1499,7 @@
             document.getElementById('colScenarioSize').value = data.settings.scenarioSize;
             document.getElementById('colCharName').value = data.settings.charName;
             document.getElementById('colCharSize').value = data.settings.charSize;
+            document.getElementById('colSideWidth').value = data.settings.sideWidth || '';
             
             globalSideScale = data.settings.globalSideScale || 1.0;
             sideOffsetX = data.settings.sideOffsetX || 0;
@@ -1634,7 +1641,8 @@
             await new Promise(r => { 
                 sideImg.onload = () => { 
                     fixedSideH = gridH;
-                    fixedSideW = sideImg.naturalWidth * (fixedSideH / sideImg.naturalHeight);
+                    const customWidth = parseInt(document.getElementById('colSideWidth').value);
+                    fixedSideW = (customWidth > 0) ? customWidth : sideImg.naturalWidth * (fixedSideH / sideImg.naturalHeight);
                     r(); 
                 }; 
                 sideImg.src = URL.createObjectURL(sideFile); 
@@ -1977,7 +1985,7 @@
     }
 
     // 설정값 변경 시 자동으로 최종 미리보기에 반영
-    ['colCols', 'colTextColor', 'colBgColor', 'colMargin', 'colScenarioName', 'colScenarioSize', 'colCharName', 'colCharSize'].forEach(id => {
+    ['colCols', 'colTextColor', 'colBgColor', 'colMargin', 'colScenarioName', 'colScenarioSize', 'colCharName', 'colCharSize', 'colSideWidth'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', scheduleAutoPreview);
     });
