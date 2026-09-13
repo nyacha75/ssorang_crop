@@ -91,7 +91,9 @@
             display: flex; align-items: center; gap: 6px;
             background: #fff; border: 1px solid #94a3b8; padding: 4px 8px;
             border-radius: 4px; font-size: 13px; color: #334155;
+            cursor: grab;
         }
+        .file-item:active { cursor: grabbing; }
         .file-item-delete {
             background: none; border: none; color: #ef4444; font-weight: bold;
             cursor: pointer; padding: 0; font-size: 14px; line-height: 1; 
@@ -99,14 +101,6 @@
             width: 16px; height: 16px; border-radius: 50%; transition: 0.2s;
         }
         .file-item-delete:hover { background: #fee2e2; }
-        .file-item-move {
-            background: #eef2f7; border: 1px solid #cbd5e1; color: #334155; font-weight: bold;
-            cursor: pointer; padding: 0; font-size: 11px; line-height: 1;
-            display: flex; align-items: center; justify-content: center;
-            width: 18px; height: 18px; border-radius: 4px; transition: 0.2s; flex: 0 0 auto;
-        }
-        .file-item-move:hover:not(:disabled) { background: #dbe4f0; }
-        .file-item-move:disabled { opacity: 0.3; cursor: not-allowed; }
 
         .divider { border: 0; border-top: 2px dashed #cbd5e1; margin: 30px 0; width: 100%; }
 
@@ -837,38 +831,14 @@
         }
 
         listEl.style.display = 'flex';
-        const swapPtFiles = (i, j) => {
-            [f_pt[i], f_pt[j]] = [f_pt[j], f_pt[i]];
-            [f_ptIds[i], f_ptIds[j]] = [f_ptIds[j], f_ptIds[i]];
-            renderPortraitFileList();
-            if (i === 0 || j === 0) {
-                // 기준(0번) 파일이 바뀌면 크로퍼를 새 기준 이미지로 다시 불러와야 하지만,
-                // 기존에 맞춰둔 크롭 위치/배율/회전은 그대로 유지한다
-                stashCropVerbatim('pt'); stashCropVerbatim('col');
-                loadCropper('pt'); loadCropper('col');
-            } else {
-                scheduleCollageAutoGenerate();
-            }
-        };
 
         f_pt.forEach((file, index) => {
             const item = document.createElement('div');
             item.className = 'file-item';
+            item.draggable = true;
+            item.__ptFile = file;
+            item.__ptId = f_ptIds[index];
 
-            const moveLeftBtn = document.createElement('button');
-            moveLeftBtn.className = 'file-item-move';
-            moveLeftBtn.innerText = '◀';
-            moveLeftBtn.title = '앞으로 이동';
-            moveLeftBtn.disabled = index === 0;
-            moveLeftBtn.onclick = () => swapPtFiles(index, index - 1);
-
-            const moveRightBtn = document.createElement('button');
-            moveRightBtn.className = 'file-item-move';
-            moveRightBtn.innerText = '▶';
-            moveRightBtn.title = '뒤로 이동';
-            moveRightBtn.disabled = index === f_pt.length - 1;
-            moveRightBtn.onclick = () => swapPtFiles(index, index + 1);
-            
             const name = document.createElement('span');
             name.innerText = file.name;
             name.style.overflow = 'hidden';
@@ -894,13 +864,46 @@
                 }
             };
 
-            item.appendChild(moveLeftBtn);
             item.appendChild(name);
-            item.appendChild(moveRightBtn);
             item.appendChild(delBtn);
             listEl.appendChild(item);
         });
     };
+
+    // 첨부된 반신 스탠딩 파일 순서를 드래그로 변경
+    (function() {
+        const listEl = document.getElementById('portraitFileList');
+        let draggedPtItem = null;
+        listEl.addEventListener('dragstart', e => {
+            draggedPtItem = e.target.closest('.file-item');
+            if (draggedPtItem) setTimeout(() => draggedPtItem.style.opacity = '0.5', 0);
+        });
+        listEl.addEventListener('dragover', e => {
+            e.preventDefault();
+            const t = e.target.closest('.file-item');
+            if (t && t !== draggedPtItem && draggedPtItem) {
+                const r = t.getBoundingClientRect();
+                listEl.insertBefore(draggedPtItem, ((e.clientX - r.left) / (r.right - r.left) > 0.5) ? t.nextSibling : t);
+            }
+        });
+        listEl.addEventListener('dragend', () => {
+            if (!draggedPtItem) return;
+            draggedPtItem.style.opacity = '1';
+            const wasFirstId = f_ptIds[0];
+            const children = Array.from(listEl.children);
+            f_pt = children.map(c => c.__ptFile);
+            f_ptIds = children.map(c => c.__ptId);
+            draggedPtItem = null;
+            renderPortraitFileList(); // 삭제 버튼 등의 인덱스 갱신을 위해 다시 렌더링
+            if (f_ptIds.length && f_ptIds[0] !== wasFirstId) {
+                // 기준(0번) 파일이 바뀌어도 기존 크롭 위치/배율/회전은 그대로 유지
+                stashCropVerbatim('pt'); stashCropVerbatim('col');
+                loadCropper('pt'); loadCropper('col');
+            } else {
+                scheduleCollageAutoGenerate();
+            }
+        });
+    })();
 
     document.getElementById('filePortrait').addEventListener('change', e => {
         if(!e.target.files.length) return;
@@ -1098,30 +1101,13 @@
         }
 
         listEl.style.display = 'flex';
-        const swapCiFiles = (i, j) => {
-            [f_ci[i], f_ci[j]] = [f_ci[j], f_ci[i]];
-            renderCutinFileList();
-            if (i === 0 || j === 0) { stashCropVerbatim('ci'); loadCropper('ci'); } // 기준(0번) 파일이 바뀌어도 기존 크롭 위치/배율은 유지
-        };
 
         f_ci.forEach((file, index) => {
             const item = document.createElement('div');
             item.className = 'file-item';
+            item.draggable = true;
+            item.__ciFile = file;
 
-            const moveLeftBtn = document.createElement('button');
-            moveLeftBtn.className = 'file-item-move';
-            moveLeftBtn.innerText = '◀';
-            moveLeftBtn.title = '앞으로 이동';
-            moveLeftBtn.disabled = index === 0;
-            moveLeftBtn.onclick = () => swapCiFiles(index, index - 1);
-
-            const moveRightBtn = document.createElement('button');
-            moveRightBtn.className = 'file-item-move';
-            moveRightBtn.innerText = '▶';
-            moveRightBtn.title = '뒤로 이동';
-            moveRightBtn.disabled = index === f_ci.length - 1;
-            moveRightBtn.onclick = () => swapCiFiles(index, index + 1);
-            
             const name = document.createElement('span');
             name.innerText = file.name;
             name.style.overflow = 'hidden';
@@ -1143,9 +1129,7 @@
                 }
             };
 
-            item.appendChild(moveLeftBtn);
             item.appendChild(name);
-            item.appendChild(moveRightBtn);
             item.appendChild(delBtn);
             listEl.appendChild(item);
         });
@@ -1218,6 +1202,37 @@
             btn.disabled = false; btn.innerText = originalText;
         }
     });
+
+    // 첨부된 컷인 파일 순서를 드래그로 변경
+    (function() {
+        const listEl = document.getElementById('cutinFileList');
+        let draggedCiItem = null;
+        listEl.addEventListener('dragstart', e => {
+            draggedCiItem = e.target.closest('.file-item');
+            if (draggedCiItem) setTimeout(() => draggedCiItem.style.opacity = '0.5', 0);
+        });
+        listEl.addEventListener('dragover', e => {
+            e.preventDefault();
+            const t = e.target.closest('.file-item');
+            if (t && t !== draggedCiItem && draggedCiItem) {
+                const r = t.getBoundingClientRect();
+                listEl.insertBefore(draggedCiItem, ((e.clientX - r.left) / (r.right - r.left) > 0.5) ? t.nextSibling : t);
+            }
+        });
+        listEl.addEventListener('dragend', () => {
+            if (!draggedCiItem) return;
+            draggedCiItem.style.opacity = '1';
+            const wasFirstFile = f_ci[0];
+            const children = Array.from(listEl.children);
+            f_ci = children.map(c => c.__ciFile);
+            draggedCiItem = null;
+            renderCutinFileList(); // 삭제 버튼 등의 인덱스 갱신을 위해 다시 렌더링
+            if (f_ci.length && f_ci[0] !== wasFirstFile) {
+                stashCropVerbatim('ci'); // 기준(0번) 파일이 바뀌어도 기존 크롭 위치/배율은 유지
+                loadCropper('ci');
+            }
+        });
+    })();
 
     document.getElementById('fileCutin').addEventListener('change', e => {
         if(!e.target.files.length) return;
