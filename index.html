@@ -105,7 +105,7 @@
         .divider { border: 0; border-top: 2px dashed #cbd5e1; margin: 30px 0; width: 100%; }
 
         .collage-preview-wrapper { margin-top: 20px; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; }
-        .collage-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+        .collage-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
         .collage-item { 
             background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; 
             display: flex; flex-direction: column; align-items: center; gap: 8px; 
@@ -116,10 +116,26 @@
         .collage-item:active { cursor: grabbing; }
         .collage-item img { max-width: 100%; border-radius: 4px; border: 1px solid #eee; pointer-events: none; transition: filter 0.2s; }
         .collage-item input { width: 90%; text-align: center; font-size: 13px; font-weight: bold; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: var(--primary); }
-        .item-controls { display: flex; gap: 5px; width: 100%; }
-        .item-controls button { flex: 1; padding: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); }
+        .item-controls { display: flex; gap: 4px; width: 100%; }
+        .item-controls button { flex: 1; padding: 6px 0; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); font-size: 13px; }
         .item-controls button:hover { background: #e2e8f0; }
-        .item-controls button.blind-toggle.on { background: #1e293b; color: #fff; }
+        .item-controls button.toggle-btn.on { background: #1e293b; color: #fff; }
+
+        /* 최종 미리보기 캔버스 + 호버 시 나타나는 스탠딩 영역 너비 조절 바 */
+        .canvas-wrap { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
+        .side-width-bar {
+            display: none; position: absolute; left: 10px; bottom: 10px;
+            width: min(340px, calc(100% - 20px)); box-sizing: border-box;
+            align-items: center; gap: 8px; padding: 8px 12px;
+            background: rgba(255,255,255,0.94); border: 1px solid #cbd5e1; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 12px; color: #334155;
+            opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 5;
+        }
+        .canvas-wrap.has-side .side-width-bar { display: flex; }
+        .canvas-wrap.has-side:hover .side-width-bar,
+        .canvas-wrap.has-side .side-width-bar:focus-within { opacity: 1; pointer-events: auto; }
+        .side-width-bar span { white-space: nowrap; font-weight: 600; }
+        .side-width-bar #sideWidthValue { font-family: monospace; min-width: 52px; text-align: right; }
 
         /* ===== Cropper.js 클린 모드 ===== */
         .cropper-view-box { outline: none !important; box-shadow: none !important; border: none !important; transition: background-color 0.2s; }
@@ -366,15 +382,11 @@
                         </div>
                     </div>
                     <div class="input-group" style="margin-bottom: 12px;">
-                        <input type="checkbox" id="colVerticalText"><label for="colVerticalText" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">시나리오명 · 캐릭터 이름 세로쓰기 (세로쓰기 시 캐릭터 이름이 왼쪽에 먼저 옴)</label>
+                        <input type="checkbox" id="colVerticalText"><label for="colVerticalText" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">시나리오명 · 캐릭터 이름 세로쓰기</label>
                     </div>
                     <label style="font-size: 13px; margin-bottom:5px;">좌측에 삽입할 스탠딩(선택)</label>
                     <input type="file" id="colSideImg" accept="image/*">
-                    <div class="input-group" style="margin-top: 8px;">
-                        <label style="font-size: 13px; margin-bottom:0; white-space:nowrap;">가로 폭(px)</label>
-                        <input type="number" id="colSideWidth" placeholder="자동" style="width: 90px;">
-                        <span style="font-size:12px; color:#94a3b8;">비워두면 원본 비율대로 자동 계산돼요.</span>
-                    </div>
+                    <p style="font-size:12px; color:#94a3b8; margin:8px 0 0;">스탠딩이 들어가는 영역의 너비는 아래 최종 미리보기에 마우스를 올리면 나타나는 슬라이더로 조절할 수 있어요.</p>
                 </div>
                 <div>
                     <label style="font-size: 13px; margin-bottom:5px;">사용자 폰트 업로드</label>
@@ -386,7 +398,7 @@
         
         <div class="collage-preview-wrapper" id="collagePreviewArea" style="display: none;">
             <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 16px;">1. 포트레이트 이름 및 순서 수정</h3>
-            <p class="help-text" style="margin-bottom: 15px;">드래그나 화살표 버튼으로 순서를 변경하고 파일명 텍스트를 수정할 수 있습니다. 눈 아이콘으로 실루엣 처리를 켜고 끌 수 있습니다. 변경 사항은 자동으로 최종 미리보기에 반영됩니다.</p>
+            <p class="help-text" style="margin-bottom: 15px;">드래그나 화살표 버튼으로 순서를 변경하고 파일명 텍스트를 수정할 수 있습니다. 🙈 버튼은 실루엣, 🌫️ 버튼은 블러 처리를 각각 켜고 끌 수 있습니다. 변경 사항은 자동으로 최종 미리보기에 반영됩니다.</p>
             <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
                 <button id="btnToggleAllNames" class="sub-btn" style="flex: 0 0 auto; padding: 8px 16px; display: none;">🔤 표정 이름 전체 끄기</button>
             </div>
@@ -396,10 +408,17 @@
             <p style="font-size:13px; color:#64748b; margin: 0 0 12px;">전신 이미지는 미리보기 위에서 <strong>마우스 휠로 배율</strong>을 조절하세요. 아래 설정은 값을 바꾸면 자동으로 반영됩니다.</p>
 
             <div id="canvasWheelHint" style="text-align:center; font-size:12px; color:#94a3b8; margin-bottom:6px;">
-                💡 전신 이미지: 마우스 휠로 배율 조절 / 드래그로 위치 이동
+                💡 전신 이미지: 마우스 휠로 배율 조절 / 드래그로 위치 이동 / 미리보기에 마우스를 올리면 스탠딩 영역 너비 조절 바가 나타납니다
             </div>
             <div style="text-align: center; margin-bottom: 20px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
-                <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
+                <div class="canvas-wrap" id="canvasWrap">
+                    <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
+                    <div class="side-width-bar" id="sideWidthBar">
+                        <span>스탠딩 영역 너비</span>
+                        <input type="range" id="sideWidthSlider" min="50" max="2000" step="1" value="300">
+                        <span id="sideWidthValue">300px</span>
+                    </div>
+                </div>
             </div>
 
             <button id="btnDownloadCollage" class="action-btn">포트레이트 모음집 다운로드</button>
@@ -485,17 +504,15 @@
        ================================================== */
     let c_hs = null, c_pt = null, c_col = null, c_ci = null;
     let f_hs = null, f_pt = [], f_ci = []; 
-    let f_ptIds = [];          // f_pt와 같은 순서로 유지되는 "고유(불변) 파일 ID" 배열 (배열 인덱스는 삭제 시 밀려서 바뀌므로, 표정 이름/블라인드 상태를 안전하게 매칭하려면 인덱스 대신 이 ID를 사용해야 함)
+    let f_ptIds = [];          // f_pt와 같은 순서로 유지되는 "고유(불변) 파일 ID" 배열
     let f_ptIdCounter = 0;     // f_ptIds 발급용 카운터
     let globalSideScale = 1.0; 
     let sideOffsetX = 0;       
-    let sideOffsetY = 0;       
+    let sideOffsetY = 0;
+    let sideAreaWidth = null;       // 좌측 스탠딩이 들어가는 영역(캔버스)의 너비(px). null이면 스탠딩 원본 비율대로 자동 계산
     let customFontName = null;      // 사용자 업로드 폰트의 CSS font-family 이름
     let customFontDataUrl = null;   // 백업용 base64 data URL
-    // 크로퍼가 재생성될 때(백업 불러오기, 첨부파일 순서변경/삭제로 기준 이미지가 바뀔 때, 캔버스 크기 변경 시)
-    // 기존에 맞춰둔 확대/위치/회전을 잃지 않도록 임시 보관하는 값. type별로 하나씩만 유지.
-    // mode: 'verbatim'  -> 컨테이너 크기가 그대로일 때(파일 순서변경/삭제, 백업 불러오기): canvasData를 그대로 재적용
-    // mode: 'relative'  -> 컨테이너 크기가 바뀔 수 있을 때(캔버스 가로/세로/1:1 설정 변경): 확대 배율과 중심점을 유지한 채 재계산
+    // 크로퍼가 재생성될 때 기존에 맞춰둔 확대/위치/회전을 잃지 않도록 임시 보관하는 값. type별로 하나씩만 유지.
     let pendingCropByType = {};
 
     const getCropperInstance = (type) => type === 'pt' ? c_pt : (type === 'col' ? c_col : (type === 'ci' ? c_ci : (type === 'hs' ? c_hs : null)));
@@ -515,8 +532,8 @@
         const box = document.getElementById(`${type}BoxWrap`);
         const oldCW = box.clientWidth, oldCH = box.clientHeight;
         const cd = c.getCanvasData();
-        const scale = cd.width / cd.naturalWidth; // 원본 이미지 px -> 화면 px 배율 (=확대 비율)
-        const centerImgX = (oldCW / 2 - cd.left) / scale; // 화면 중심에 대응하는 원본 이미지 좌표
+        const scale = cd.width / cd.naturalWidth;
+        const centerImgX = (oldCW / 2 - cd.left) / scale;
         const centerImgY = (oldCH / 2 - cd.top) / scale;
         const rot = getRotateSliderIds(type);
         const rotation = rot ? (parseInt(document.getElementById(rot.slider).value) || 0) : 0;
@@ -541,7 +558,7 @@
         } else if (pending.mode === 'relative') {
             const box = document.getElementById(`${type}BoxWrap`);
             const newCW = box.clientWidth, newCH = box.clientHeight;
-            const cd = c.getCanvasData(); // 기본(전체 보기) 상태에서 naturalWidth/Height를 얻기 위함
+            const cd = c.getCanvasData();
             const newWidth = cd.naturalWidth * pending.scale;
             const newHeight = cd.naturalHeight * pending.scale;
             const newLeft = newCW / 2 - pending.centerImgX * pending.scale;
@@ -573,7 +590,7 @@
     };
 
     /* ==================================================
-       2. 유틸리티 (소수점 오차 방지 로직 적용)
+       2. 유틸리티
        ================================================== */
     const resizeCanvasBox = (type, w, h) => {
         const box = document.getElementById(`${type}BoxWrap`);
@@ -612,6 +629,11 @@
         return `${b}${suffix}.png`;
     };
 
+    const getFileExt = (filename) => {
+        const m = /\.[^/.]+$/.exec(filename || '');
+        return m ? m[0] : '.png';
+    };
+
     const getActiveFontFamily = () => customFontName ? `"${customFontName}"` : `"Pretendard", sans-serif`;
 
     const updatePreviewBg = (type) => {
@@ -630,6 +652,80 @@
             wrap.style.backgroundColor = pck.value;
         }
     };
+
+    /* ----- 공용 크롭 렌더러 -----
+       미리보기와 동일한 결과가 나오도록 "회전 → 캔버스 좌표 적용" 순서로 잘라낸다.
+       (이전에는 회전을 적용하지 않아서 기울기가 결과물에 반영되지 않았음) */
+    function cropFileToCanvas(file, { cW, cH, canvasData, rotation = 0, w, h, fillColor = 'transparent' }) {
+        return new Promise((resolve) => {
+            if (!file) { resolve(null); return; }
+            const stage = document.createElement('div');
+            stage.style.cssText = `position:fixed; top:0; left:0; width:${cW}px; height:${cH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
+            document.body.appendChild(stage);
+
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.style.display = 'block';
+            img.style.maxWidth = '100%';
+
+            const cleanup = (inst) => {
+                try { if (inst) inst.destroy(); } catch (e) {}
+                stage.remove();
+                URL.revokeObjectURL(url);
+            };
+
+            img.onload = () => {
+                new Cropper(img, {
+                    viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
+                    center: false, guides: false, highlight: false, background: false,
+                    rotatable: true,
+                    aspectRatio: cW / cH,
+                    minContainerWidth: cW, minContainerHeight: cH,
+                    ready() {
+                        const inst = this.cropper;
+                        inst.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
+                        inst.rotateTo(rotation || 0);
+                        inst.setCanvasData(canvasData);
+                        const canvas = inst.getCroppedCanvas({
+                            width: w, height: h, fillColor: fillColor, imageSmoothingQuality: 'high'
+                        });
+                        cleanup(inst);
+                        resolve(canvas);
+                    }
+                });
+            };
+            img.onerror = () => { cleanup(null); resolve(null); };
+            img.src = url;
+            stage.appendChild(img);
+        });
+    }
+
+    const canvasToPngBlob = (canvas) => new Promise(r => canvas.toBlob(r, 'image/png'));
+
+    function getPtCropParams() {
+        const wrapEl = document.getElementById('ptBoxWrap');
+        const w = parseInt(document.getElementById('portraitW').value) || 460;
+        const h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value) || 800);
+        return {
+            cW: wrapEl.clientWidth, cH: wrapEl.clientHeight,
+            canvasData: c_pt.getCanvasData(),
+            rotation: parseInt(document.getElementById('portraitRotateSlider').value) || 0,
+            w, h, fillColor: 'transparent'
+        };
+    }
+
+    function getCiCropParams() {
+        const wrapEl = document.getElementById('ciBoxWrap');
+        const w = parseInt(document.getElementById('cutinW').value) || 1200;
+        const h = parseInt(document.getElementById('cutinH').value) || 400;
+        const isTransparent = document.getElementById('ciTransparent').checked;
+        return {
+            cW: wrapEl.clientWidth, cH: wrapEl.clientHeight,
+            canvasData: c_ci.getCanvasData(),
+            rotation: 0,
+            w, h, fillColor: isTransparent ? 'transparent' : document.getElementById('ciColorPicker').value
+        };
+    }
 
     /* ==================================================
        3. 가이드라인
@@ -808,6 +904,15 @@
     // ==========================================
     // [탭 2] 반신 스탠딩 - 파일 리스트 관리
     // ==========================================
+    // 첨부 파일이 1장이면 ZIP 대신 단일 PNG로 저장되므로 버튼 문구도 맞춰서 바꾼다
+    function getPtBtnLabel() {
+        return f_pt.length === 1 ? '스탠딩 다운로드 (PNG)' : '전체 파일 개별 추출 (ZIP)';
+    }
+    function updatePtBtnLabel() {
+        const btn = document.getElementById('btnCropPortrait');
+        if (btn && !btn.dataset.busy) btn.innerText = getPtBtnLabel();
+    }
+
     const renderPortraitFileList = () => {
         const listEl = document.getElementById('portraitFileList');
         const countEl = document.getElementById('portraitFileCount');
@@ -815,6 +920,7 @@
         listEl.innerHTML = '';
         countEl.innerText = `선택된 파일: ${f_pt.length}개`;
         clearBtn.style.display = f_pt.length > 0 ? 'block' : 'none';
+        updatePtBtnLabel();
 
         if (f_pt.length === 0) {
             listEl.style.display = 'none';
@@ -840,12 +946,12 @@
             item.__ptId = f_ptIds[index];
 
             const name = document.createElement('span');
-            name.innerText = file.name;
+            name.innerText = file ? file.name : '(원본 없음)';
             name.style.overflow = 'hidden';
             name.style.textOverflow = 'ellipsis';
             name.style.whiteSpace = 'nowrap';
             name.style.maxWidth = '150px';
-            name.title = file.name;
+            name.title = file ? file.name : '';
 
             const delBtn = document.createElement('button');
             delBtn.className = 'file-item-delete';
@@ -853,10 +959,9 @@
             delBtn.title = '제외하기';
             delBtn.onclick = () => {
                 f_pt.splice(index, 1);
-                f_ptIds.splice(index, 1); // 파일-표정 이름 매칭이 밀리지 않도록 ID 배열도 같은 위치에서 함께 제거
+                f_ptIds.splice(index, 1);
                 renderPortraitFileList();
                 if (index === 0 && f_pt.length > 0) {
-                    // 기존에 맞춰둔 크롭 위치/배율/회전은 그대로 유지한 채 기준 이미지만 교체
                     stashCropVerbatim('pt'); stashCropVerbatim('col');
                     loadCropper('pt'); loadCropper('col');
                 } else if (f_pt.length > 0) {
@@ -894,9 +999,8 @@
             f_pt = children.map(c => c.__ptFile);
             f_ptIds = children.map(c => c.__ptId);
             draggedPtItem = null;
-            renderPortraitFileList(); // 삭제 버튼 등의 인덱스 갱신을 위해 다시 렌더링
+            renderPortraitFileList();
             if (f_ptIds.length && f_ptIds[0] !== wasFirstId) {
-                // 기준(0번) 파일이 바뀌어도 기존 크롭 위치/배율/회전은 그대로 유지
                 stashCropVerbatim('pt'); stashCropVerbatim('col');
                 loadCropper('pt'); loadCropper('col');
             } else {
@@ -911,7 +1015,7 @@
         
         const newFiles = Array.from(e.target.files);
         f_pt = f_pt.concat(newFiles);
-        f_ptIds = f_ptIds.concat(newFiles.map(() => genFilePtId())); // 새로 추가된 파일에는 새 고유 ID 발급
+        f_ptIds = f_ptIds.concat(newFiles.map(() => genFilePtId()));
         e.target.value = ''; 
         
         renderPortraitFileList();
@@ -987,7 +1091,6 @@
 
     // ==========================================
     // [탭 2-1] 반신 스탠딩 - 크롭 위치/배율/회전 백업 & 불러오기
-    // (표정을 나중에 추가로 그려서 넣을 때, 이전과 동일한 정렬로 다시 크롭할 수 있도록)
     // ==========================================
     document.getElementById('btnPtCropBackup').addEventListener('click', () => {
         if (!c_pt) { alert('먼저 반신 스탠딩 파일을 첨부하고 크롭 위치를 맞춰주세요.'); return; }
@@ -1018,7 +1121,7 @@
             pendingCropByType['pt'] = { mode: 'verbatim', rotation: data.rotation || 0, canvasData: data.canvasData };
 
             if (f_pt.length > 0) {
-                loadCropper('pt'); // 새 캔버스 크기/비율로 다시 구성한 뒤 ready()에서 회전·좌표를 자동 적용
+                loadCropper('pt');
             } else {
                 alert('크롭 설정을 불러왔습니다. 반신 스탠딩 파일을 첨부하면 자동으로 동일한 위치·배율로 맞춰집니다.');
             }
@@ -1033,7 +1136,6 @@
         await importPtCropSettingsFile(file);
     });
 
-    // 파일을 하나도 첨부하지 않은 상태에서도 눌러서 바로 크롭 설정을 불러올 수 있는 상단 버튼
     document.getElementById('importPtCropJsonTop')?.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         e.target.value = '';
@@ -1042,7 +1144,6 @@
 
     // ==========================================
     // [탭 3-1] 컷인 - 크롭 위치/배율 백업 & 불러오기
-    // (컷인을 나중에 추가로 그려서 넣을 때, 이전과 동일한 정렬로 다시 크롭할 수 있도록)
     // ==========================================
     document.getElementById('btnCiCropBackup').addEventListener('click', () => {
         if (!c_ci) { alert('먼저 컷인 파일을 첨부하고 크롭 위치를 맞춰주세요.'); return; }
@@ -1071,7 +1172,7 @@
             pendingCropByType['ci'] = { mode: 'verbatim', rotation: 0, canvasData: data.canvasData };
 
             if (f_ci.length > 0) {
-                loadCropper('ci'); // 새 캔버스 크기/비율로 다시 구성한 뒤 ready()에서 좌표를 자동 적용
+                loadCropper('ci');
             } else {
                 alert('크롭 설정을 불러왔습니다. 컷인 파일을 첨부하면 자동으로 동일한 위치·배율로 맞춰집니다.');
             }
@@ -1124,7 +1225,7 @@
                 f_ci.splice(index, 1);
                 renderCutinFileList();
                 if (index === 0 && f_ci.length > 0) {
-                    stashCropVerbatim('ci'); // 기준 이미지가 바뀌어도 기존 크롭 위치/배율은 유지
+                    stashCropVerbatim('ci');
                     loadCropper('ci');
                 }
             };
@@ -1135,8 +1236,7 @@
         });
     };
 
-    // 첨부 파일 목록에서 개별 파일 하나만 현재 크롭 설정대로 잘라 바로 다운로드 (기본 다운로드 방식)
-    // 첨부된 컷인 파일 전체를 현재 크롭 설정대로 한 장씩(압축 없이) 순서대로 다운로드 (기본 다운로드 방식)
+    // 첨부된 컷인 파일 전체를 현재 크롭 설정대로 한 장씩(압축 없이) 순서대로 다운로드
     document.getElementById('btnDownloadCutinEach').addEventListener('click', async () => {
         if (!c_ci || f_ci.length === 0) return;
 
@@ -1145,57 +1245,14 @@
         btn.disabled = true; btn.innerText = '다운로드 중...';
 
         try {
-            const wrapEl = document.getElementById('ciBoxWrap');
-            const cW = wrapEl.clientWidth;
-            const cH = wrapEl.clientHeight;
-            const canvasData = c_ci.getCanvasData();
-            const w = parseInt(document.getElementById('cutinW').value) || 1200;
-            const h = parseInt(document.getElementById('cutinH').value) || 400;
-            const isTransparent = document.getElementById('ciTransparent').checked;
-            const fillColor = isTransparent ? 'transparent' : document.getElementById('ciColorPicker').value;
-
-            const stage = document.createElement('div');
-            stage.style.cssText = `position:fixed; top:0; left:0; width:${cW}px; height:${cH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
-            document.body.appendChild(stage);
-
-            for (let file of f_ci) {
-                await new Promise((resolve) => {
-                    const img = new Image();
-                    img.style.display = 'block';
-                    img.style.maxWidth = '100%';
-                    img.onload = () => {
-                        new Cropper(img, {
-                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
-                            center: false, guides: false, highlight: false, background: false,
-                            aspectRatio: cW / cH,
-                            minContainerWidth: cW, minContainerHeight: cH,
-                            ready() {
-                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
-                                this.cropper.setCanvasData(canvasData);
-                                const canvas = this.cropper.getCroppedCanvas({
-                                    width: w, height: h, fillColor: fillColor, imageSmoothingQuality: 'high'
-                                });
-                                if (canvas) {
-                                    canvas.toBlob(blob => {
-                                        safeDownloadBlob(blob, getNewFilename(file.name, '_컷인'));
-                                        this.cropper.destroy();
-                                        stage.innerHTML = '';
-                                        resolve();
-                                    }, 'image/png');
-                                } else {
-                                    this.cropper.destroy();
-                                    stage.innerHTML = '';
-                                    resolve();
-                                }
-                            }
-                        });
-                    };
-                    img.onerror = resolve;
-                    img.src = URL.createObjectURL(file);
-                    stage.appendChild(img);
-                });
+            const params = getCiCropParams();
+            for (const file of f_ci) {
+                const canvas = await cropFileToCanvas(file, params);
+                if (!canvas) continue;
+                const blob = await canvasToPngBlob(canvas);
+                safeDownloadBlob(blob, getNewFilename(file.name, '_컷인'));
+                await new Promise(r => setTimeout(r, 150));
             }
-            stage.remove();
         } catch (e) {
             alert('다운로드 중 오류가 발생했습니다: ' + e.message);
         } finally {
@@ -1226,9 +1283,9 @@
             const children = Array.from(listEl.children);
             f_ci = children.map(c => c.__ciFile);
             draggedCiItem = null;
-            renderCutinFileList(); // 삭제 버튼 등의 인덱스 갱신을 위해 다시 렌더링
+            renderCutinFileList();
             if (f_ci.length && f_ci[0] !== wasFirstFile) {
-                stashCropVerbatim('ci'); // 기준(0번) 파일이 바뀌어도 기존 크롭 위치/배율은 유지
+                stashCropVerbatim('ci');
                 loadCropper('ci');
             }
         });
@@ -1262,21 +1319,52 @@
 
 
     /* ==================================================
-       7. ZIP 다운로드 통합 로직 (스탠딩 & 컷인 공용)
+       7. 다운로드 로직 (스탠딩 단일 PNG / ZIP, 컷인 ZIP)
        ================================================== */
-    document.getElementById('btnCropPortrait').addEventListener('click', () => {
+    // 스탠딩: 1장이면 ZIP 없이 단일 PNG로 바로 저장, 2장 이상이면 ZIP 파일명 입력 모달
+    document.getElementById('btnCropPortrait').addEventListener('click', async () => {
         if (!c_pt || f_pt.length === 0) return;
-        const modal = document.getElementById('zipNameModal');
-        modal.dataset.targetTab = 'pt';
-        modal.classList.add('open');
+
+        if (f_pt.length === 1) {
+            const btn = document.getElementById('btnCropPortrait');
+            btn.disabled = true; btn.dataset.busy = '1'; btn.innerText = '저장 중...';
+            try {
+                const file = f_pt[0];
+                const canvas = await cropFileToCanvas(file, getPtCropParams());
+                if (!canvas) throw new Error('이미지를 자르지 못했습니다.');
+                const blob = await canvasToPngBlob(canvas);
+                safeDownloadBlob(blob, getNewFilename(file.name, ''));
+            } catch (e) {
+                alert('저장 중 오류 발생: ' + e.message);
+            } finally {
+                delete btn.dataset.busy;
+                btn.disabled = false; btn.innerText = getPtBtnLabel();
+            }
+            return;
+        }
+
+        openZipModal('pt');
     });
 
     document.getElementById('btnCropCutin').addEventListener('click', () => {
         if (!c_ci || f_ci.length === 0) return;
-        const modal = document.getElementById('zipNameModal');
-        modal.dataset.targetTab = 'ci';
-        modal.classList.add('open');
+        openZipModal('ci');
     });
+
+    // ZIP 파일명 입력창: 용도(스탠딩/컷인/원본)별로 마지막 입력값을 기억하고, 없으면 기본값을 채운다
+    const zipNameMemory = {};
+    function getPiecesDefaultZipName() {
+        const sc = document.getElementById('colScenarioName').value.trim();
+        const ch = document.getElementById('colCharName').value.trim();
+        return [sc, ch, '스탠딩'].filter(Boolean).join('_');
+    }
+    function openZipModal(target) {
+        const modal = document.getElementById('zipNameModal');
+        modal.dataset.targetTab = target;
+        document.getElementById('zipNameInput').value =
+            target === 'pieces' ? getPiecesDefaultZipName() : (zipNameMemory[target] || 'AhpuhVOID_Fighting');
+        modal.classList.add('open');
+    }
 
     document.getElementById('zipNameCancel').addEventListener('click', () => {
         document.getElementById('zipNameModal').classList.remove('open');
@@ -1286,92 +1374,44 @@
         const modal = document.getElementById('zipNameModal');
         const targetTab = modal.dataset.targetTab;
         modal.classList.remove('open');
-        const customZipName = document.getElementById('zipNameInput').value.trim() || 'AhpuhVOID_Fighting';
+        const customZipName = document.getElementById('zipNameInput').value.trim()
+            || (targetTab === 'pieces' ? getPiecesDefaultZipName() : 'AhpuhVOID_Fighting');
+        if (targetTab !== 'pieces') zipNameMemory[targetTab] = customZipName;
 
-        let c_target, f_target, w, h, btn, wrapElId, suffix, defaultLabel;
+        if (targetTab === 'pieces') { await downloadPiecesZip(customZipName); return; }
+
+        let f_target, params, btn, suffix;
 
         if (targetTab === 'pt') {
             btn = document.getElementById('btnCropPortrait');
-            c_target = c_pt;
             f_target = f_pt;
-            w = parseInt(document.getElementById('portraitW').value) || 460;
-            h = document.getElementById('ptSquareToggle').checked ? w : (parseInt(document.getElementById('portraitH').value) || 800);
-            wrapElId = 'ptBoxWrap';
+            params = getPtCropParams();
             suffix = '';
-            defaultLabel = '전체 파일 개별 추출 (ZIP)';
-        } else if (targetTab === 'ci') {
+        } else {
             btn = document.getElementById('btnCropCutin');
-            c_target = c_ci;
             f_target = f_ci;
-            w = parseInt(document.getElementById('cutinW').value) || 1200;
-            h = parseInt(document.getElementById('cutinH').value) || 400;
-            wrapElId = 'ciBoxWrap';
+            params = getCiCropParams();
             suffix = '_컷인';
-            defaultLabel = '📦 압축 파일로 다운로드 (ZIP)';
         }
 
-        btn.disabled = true; btn.innerText = '압축 파일 생성 중...';
+        btn.disabled = true; btn.dataset.busy = '1'; btn.innerText = '압축 파일 생성 중...';
         
         try {
-            const wrapEl = document.getElementById(wrapElId);
-            const cW = wrapEl.clientWidth;
-            const cH = wrapEl.clientHeight;
-            const canvasData = c_target.getCanvasData();
-
             const zip = new JSZip();
-            const stage = document.createElement('div');
-            stage.style.cssText = `position:fixed; top:0; left:0; width:${cW}px; height:${cH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
-            document.body.appendChild(stage);
-
-            for (let file of f_target) {
-                await new Promise((resolve) => {
-                    const img = new Image();
-                    img.style.display = 'block';
-                    img.style.maxWidth = '100%';
-                    img.onload = () => {
-                        new Cropper(img, {
-                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
-                            center: false, guides: false, highlight: false, background: false, 
-                            aspectRatio: cW / cH,
-                            minContainerWidth: cW, minContainerHeight: cH,
-                            ready() {
-                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
-                                this.cropper.setCanvasData(canvasData); 
-                                
-                                const isTransparent = targetTab === 'pt' ? true : document.getElementById('ciTransparent').checked;
-                                const fillColor = isTransparent ? 'transparent' : document.getElementById('ciColorPicker').value;
-
-                                const canvas = this.cropper.getCroppedCanvas({ 
-                                    width: w, height: h, fillColor: fillColor, imageSmoothingQuality: 'high' 
-                                });
-                                
-                                if(canvas) {
-                                    canvas.toBlob(blob => { 
-                                        const finalName = targetTab === 'ci' ? getNewFilename(file.name, suffix) : file.name;
-                                        zip.file(finalName, blob); 
-                                        this.cropper.destroy(); 
-                                        stage.innerHTML = ''; 
-                                        resolve(); 
-                                    }, 'image/png');
-                                } else { 
-                                    this.cropper.destroy(); 
-                                    resolve(); 
-                                }
-                            }
-                        });
-                    };
-                    img.onerror = resolve; 
-                    img.src = URL.createObjectURL(file);
-                    stage.appendChild(img);
-                });
+            for (const file of f_target) {
+                const canvas = await cropFileToCanvas(file, params);
+                if (!canvas) continue;
+                const blob = await canvasToPngBlob(canvas);
+                zip.file(getNewFilename(file.name, suffix), blob);
             }
-            stage.remove();
             const zipBlob = await zip.generateAsync({ type: "blob" });
             safeDownloadBlob(zipBlob, customZipName + ".zip");
         } catch (e) {
             alert('ZIP 저장 중 오류 발생: ' + e.message);
         } finally {
-            btn.disabled = false; btn.innerText = defaultLabel;
+            delete btn.dataset.busy;
+            btn.disabled = false;
+            btn.innerText = targetTab === 'pt' ? getPtBtnLabel() : '📦 압축 파일로 다운로드 (ZIP)';
         }
     });
 
@@ -1379,8 +1419,6 @@
        8. 콜라주 생성 엔진 및 전용 백업 기능
        ================================================== */
     
-    let pendingBackupObj = null;
-
     document.getElementById('btnCollageBackup').addEventListener('click', async () => {
         const items = document.querySelectorAll('.collage-item');
         if (items.length === 0) {
@@ -1440,7 +1478,7 @@
                 scenarioSize: document.getElementById('colScenarioSize').value,
                 charName: document.getElementById('colCharName').value,
                 charSize: document.getElementById('colCharSize').value,
-                sideWidth: document.getElementById('colSideWidth').value,
+                sideWidth: sideAreaWidth || '',   // 스탠딩이 들어가는 영역(캔버스) 너비
                 verticalText: document.getElementById('colVerticalText').checked,
                 globalSideScale: globalSideScale,
                 sideOffsetX: sideOffsetX,
@@ -1476,7 +1514,6 @@
         }
     });
 
-    // data:URL -> File 객체 복원 (백업에서 원본 첨부 파일 복구용)
     function dataURLToFile(dataUrl, filename) {
         const arr = dataUrl.split(',');
         const mime = arr[0].match(/:(.*?);/)[1];
@@ -1487,8 +1524,6 @@
         return new File([u8arr], filename, { type: mime });
     }
 
-    // 콜라주 백업(JSON) 파일을 읽어 상태를 복원하는 공용 처리 로직
-    // (파일을 하나도 첨부하지 않은 상태에서도 백업만으로 바로 불러올 수 있도록 별도 함수로 분리)
     async function importCollageBackupFile(file) {
         if (!file) return;
         const text = await new Promise((resolve, reject) => {
@@ -1518,7 +1553,7 @@
             document.getElementById('colScenarioSize').value = data.settings.scenarioSize;
             document.getElementById('colCharName').value = data.settings.charName;
             document.getElementById('colCharSize').value = data.settings.charSize;
-            document.getElementById('colSideWidth').value = data.settings.sideWidth || '';
+            sideAreaWidth = parseInt(data.settings.sideWidth) || null;
             document.getElementById('colVerticalText').checked = !!data.settings.verticalText;
             
             globalSideScale = data.settings.globalSideScale || 1.0;
@@ -1534,7 +1569,6 @@
                 document.getElementById('colSideImg').value = '';
             }
 
-            // 백업에 포함된 사용자 폰트 복원
             if (data.fontName && data.fontData) {
                 try {
                     await loadCustomFontFromDataUrl(data.fontName, data.fontData);
@@ -1545,7 +1579,6 @@
                 document.getElementById('colFontFile').value = '';
             }
 
-            // 백업된 원본 첨부 파일들을 f_pt에 복원 (크롭본이 아닌 원본을 유지하기 위함)
             const restoredOriginals = [];
             data.items.forEach((itemData) => {
                 if (itemData.originalSrc && itemData.originalFileName) {
@@ -1555,7 +1588,7 @@
                 }
             });
             f_pt = restoredOriginals;
-            f_ptIds = restoredOriginals.map(() => genFilePtId()); // 복원된 파일들에도 새 고유 ID를 부여해 위치가 아닌 ID로 표정 이름이 매칭되게 한다
+            f_ptIds = restoredOriginals.map(() => genFilePtId());
             renderPortraitFileList();
 
             const gridArea = document.getElementById('collageGrid');
@@ -1567,7 +1600,7 @@
             });
 
             document.getElementById('collagePreviewArea').style.display = 'block';
-            await drawFinalCollage(false);
+            await requestRedraw();
             
         } catch (err) {
             alert("백업을 불러오는 중 오류가 발생했습니다: " + err.message);
@@ -1580,12 +1613,26 @@
         await importCollageBackupFile(file);
     });
 
-    // 파일을 하나도 첨부하지 않은 상태에서도 눌러서 바로 백업을 불러올 수 있는 상단 버튼
     document.getElementById('importCollageJsonTop')?.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         e.target.value = '';
         await importCollageBackupFile(file);
     });
+
+    // 미리보기 캔버스 다시 그리기 (연속 호출을 합쳐서 한 번에 하나씩만 그림)
+    let redrawRunning = false, redrawQueued = false;
+    async function requestRedraw() {
+        if (redrawRunning) { redrawQueued = true; return; }
+        redrawRunning = true;
+        try {
+            do {
+                redrawQueued = false;
+                await drawFinalCollage(false);
+            } while (redrawQueued);
+        } finally {
+            redrawRunning = false;
+        }
+    }
 
     (function() {
         const cvs = document.getElementById('finalCollageCanvas');
@@ -1596,7 +1643,7 @@
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             globalSideScale = Math.max(0.1, Math.min(5.0, globalSideScale + delta));
-            await drawFinalCollage(false);
+            await requestRedraw();
         }, { passive: false });
 
         cvs.addEventListener('mousedown', (e) => {
@@ -1611,7 +1658,7 @@
             sideOffsetX += (e.clientX - lastX) * ratio;
             sideOffsetY += (e.clientY - lastY) * ratio;
             lastX = e.clientX; lastY = e.clientY;
-            await drawFinalCollage(false);
+            await requestRedraw();
         });
         window.addEventListener('mouseup', () => {
             if(!isDragging) return;
@@ -1632,10 +1679,17 @@
             sideOffsetX += (e.touches[0].clientX - lastX) * ratio;
             sideOffsetY += (e.touches[0].clientY - lastY) * ratio;
             lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
-            await drawFinalCollage(false);
+            await requestRedraw();
         }, { passive: true });
         cvs.addEventListener('touchend', () => { isDragging = false; });
     })();
+
+    // 미리보기에 마우스를 올리면 나타나는 "스탠딩 영역 너비" 슬라이더
+    document.getElementById('sideWidthSlider').addEventListener('input', async (e) => {
+        sideAreaWidth = parseInt(e.target.value) || null;
+        document.getElementById('sideWidthValue').innerText = `${e.target.value}px`;
+        await requestRedraw();
+    });
 
     async function drawFinalCollage(isDownload) {
         const items = document.querySelectorAll('.collage-item');
@@ -1654,25 +1708,41 @@
         const gridW = (cols * w) + ((cols - 1) * gap);
         const gridH = (rows * h) + ((rows - 1) * gap);
         
-        let sideImg = null, fixedSideW = 0, fixedSideH = 0;
+        // 좌측 스탠딩: 이미지는 원본 비율을 유지하고, 이미지가 들어가는 "영역"의 너비만 조절한다
+        let sideImg = null, sideAreaW = 0, sideBaseW = 0, sideBaseH = 0;
         const sideFile = document.getElementById('colSideImg').files[0];
         if (sideFile) { 
             sideImg = new Image(); 
+            const sideUrl = URL.createObjectURL(sideFile);
             await new Promise(r => { 
-                sideImg.onload = () => { 
-                    fixedSideH = gridH;
-                    const customWidth = parseInt(document.getElementById('colSideWidth').value);
-                    fixedSideW = (customWidth > 0) ? customWidth : sideImg.naturalWidth * (fixedSideH / sideImg.naturalHeight);
-                    r(); 
-                }; 
-                sideImg.src = URL.createObjectURL(sideFile); 
-            }); 
+                sideImg.onload = r;
+                sideImg.onerror = r;
+                sideImg.src = sideUrl; 
+            });
+            URL.revokeObjectURL(sideUrl);
+            if (!sideImg.naturalWidth) {
+                sideImg = null;
+            } else {
+                sideBaseH = gridH;
+                sideBaseW = sideImg.naturalWidth * (gridH / sideImg.naturalHeight);
+                sideAreaW = sideAreaWidth > 0 ? sideAreaWidth : Math.round(sideBaseW);
+            }
         }
 
         const cvs = isDownload ? document.createElement('canvas') : document.getElementById('finalCollageCanvas');
-        if (!isDownload) cvs.style.display = 'inline-block';
+        if (!isDownload) {
+            cvs.style.display = 'inline-block';
+            // 너비 조절 바 동기화
+            const wrap = document.getElementById('canvasWrap');
+            if (wrap) wrap.classList.toggle('has-side', !!sideImg);
+            if (sideImg) {
+                const slider = document.getElementById('sideWidthSlider');
+                slider.value = sideAreaW;
+                document.getElementById('sideWidthValue').innerText = `${sideAreaW}px`;
+            }
+        }
 
-        cvs.width = (sideImg ? fixedSideW + gap : 0) + gridW + (gap * 2); 
+        cvs.width = (sideImg ? sideAreaW + gap : 0) + gridW + (gap * 2); 
         cvs.height = gridH + (gap * 2);
         
         const ctx = cvs.getContext('2d');
@@ -1681,15 +1751,18 @@
         
         if (sideImg) {
             ctx.save();
-            ctx.translate(gap + fixedSideW / 2 + sideOffsetX, gap + fixedSideH / 2 + sideOffsetY);
+            // 스탠딩 영역 밖으로 이미지가 삐져나가지 않도록 클리핑
+            ctx.beginPath();
+            ctx.rect(0, 0, gap + sideAreaW + gap / 2, cvs.height);
+            ctx.clip();
+            ctx.translate(gap + sideAreaW / 2 + sideOffsetX, gap + sideBaseH / 2 + sideOffsetY);
             ctx.scale(globalSideScale, globalSideScale);
-            ctx.drawImage(sideImg, -fixedSideW / 2, -fixedSideH / 2, fixedSideW, fixedSideH);
+            ctx.drawImage(sideImg, -sideBaseW / 2, -sideBaseH / 2, sideBaseW, sideBaseH);
             ctx.restore();
         }
 
-        const offsetX = gap + (sideImg ? fixedSideW + gap : 0);
+        const offsetX = gap + (sideImg ? sideAreaW + gap : 0);
 
-        // 표정 그리드 영역은 스탠딩 이미지가 뒤로 비치지 않도록 불투명한 배경을 먼저 깐다
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(offsetX - gap / 2, 0, gridW + gap, cvs.height);
         
@@ -1705,12 +1778,10 @@
             await new Promise(r => {
                 const tmpImg = new Image();
                 tmpImg.onload = () => {
-                    // 조각별 불투명 배경 (표정 뒤로 스탠딩이 비치지 않도록)
                     ctx.fillStyle = bgColor;
                     ctx.fillRect(tx, ty, w, h);
 
                     if (blindMode === 'silhouette') {
-                        // 실루엣(검은색) 블라인드 처리: 알파 채널만 남기고 검게 칠함
                         const off = document.createElement('canvas');
                         off.width = w; off.height = h;
                         const offCtx = off.getContext('2d');
@@ -1720,7 +1791,6 @@
                         offCtx.fillRect(0, 0, w, h);
                         ctx.drawImage(off, tx, ty, w, h);
                     } else if (blindMode === 'blur') {
-                        // 블러 처리: 원본을 흐리게 렌더링 (셀 영역 밖으로 번지지 않도록 클리핑)
                         ctx.save();
                         ctx.beginPath();
                         ctx.rect(tx, ty, w, h);
@@ -1763,6 +1833,8 @@
                     const lineHeight = fontSize * 1.05;
                     let y = gap;
                     for (const ch of Array.from(text)) {
+                        // 띄어쓰기는 일반 글자 간격의 절반만 차지
+                        if (ch === ' ' || ch === '\u3000') { y += lineHeight / 2; continue; }
                         ctx.strokeText(ch, centerX, y);
                         ctx.fillStyle = textColor;
                         ctx.fillText(ch, centerX, y);
@@ -1816,7 +1888,7 @@
         if (!previewArea || previewArea.style.display === 'none') return;
         if (!document.querySelectorAll('.collage-item').length) return;
         clearTimeout(autoPreviewTimer);
-        autoPreviewTimer = setTimeout(() => { drawFinalCollage(false); }, 200);
+        autoPreviewTimer = setTimeout(() => { requestRedraw(); }, 200);
     }
 
     function createCollageItem(src, name, fileId, blindMode, nameOff) {
@@ -1830,7 +1902,7 @@
         item.draggable = true;
         item.dataset.id = fileId;
         item.dataset.blindMode = blindMode;
-        item.dataset.blinded = blindMode === 'silhouette' ? 'true' : 'false'; // 하위 호환용 필드 유지
+        item.dataset.blinded = blindMode === 'silhouette' ? 'true' : 'false';
         item.dataset.nameOff = nameOff ? 'true' : 'false';
 
         const pImg = document.createElement('img');
@@ -1851,49 +1923,49 @@
         btnL.onclick = () => { if(item.previousElementSibling) { gridArea.insertBefore(item, item.previousElementSibling); scheduleAutoPreview(); } };
         btnR.onclick = () => { if(item.nextElementSibling) { gridArea.insertBefore(item.nextElementSibling, item); scheduleAutoPreview(); } };
 
-        const btnBlind = document.createElement('button');
-        btnBlind.className = 'blind-toggle';
+        // 실루엣 / 블러 버튼을 분리 (둘은 동시에 켜지지 않고, 하나를 켜면 다른 하나는 꺼짐)
+        const btnSil = document.createElement('button');
+        btnSil.className = 'toggle-btn';
+        btnSil.innerText = '🙈';
+        const btnBlur = document.createElement('button');
+        btnBlur.className = 'toggle-btn';
+        btnBlur.innerText = '🌫️';
 
         const applyBlindState = () => {
             const mode = item.dataset.blindMode;
             item.classList.remove('blinded', 'blurred');
-            btnBlind.classList.remove('on');
+            btnSil.classList.toggle('on', mode === 'silhouette');
+            btnBlur.classList.toggle('on', mode === 'blur');
+            btnSil.title = mode === 'silhouette' ? '실루엣 처리 중 (클릭 시 해제)' : '클릭 시 실루엣 처리';
+            btnBlur.title = mode === 'blur' ? '블러 처리 중 (클릭 시 해제)' : '클릭 시 블러 처리';
             if (mode === 'silhouette') {
-                btnBlind.innerText = '🙈';
-                btnBlind.title = '실루엣 처리 중 (클릭 시 블러로 전환)';
-                btnBlind.classList.add('on');
                 item.classList.add('blinded');
                 pImg.style.filter = 'brightness(0)';
             } else if (mode === 'blur') {
-                btnBlind.innerText = '🌫️';
-                btnBlind.title = '블러 처리 중 (클릭 시 해제)';
-                btnBlind.classList.add('on');
                 item.classList.add('blurred');
                 pImg.style.filter = 'blur(4px)';
             } else {
-                btnBlind.innerText = '👁️';
-                btnBlind.title = '클릭 시 실루엣 처리 → 블러 → 원래대로 순서로 전환됩니다.';
                 pImg.style.filter = 'none';
             }
         };
         applyBlindState();
 
-        btnBlind.onclick = () => {
-            const order = ['none', 'silhouette', 'blur'];
-            const next = order[(order.indexOf(item.dataset.blindMode) + 1) % order.length];
+        const setMode = (target) => {
+            const next = item.dataset.blindMode === target ? 'none' : target;
             item.dataset.blindMode = next;
             item.dataset.blinded = next === 'silhouette' ? 'true' : 'false';
             applyBlindState();
             scheduleAutoPreview();
         };
+        btnSil.onclick = () => setMode('silhouette');
+        btnBlur.onclick = () => setMode('blur');
 
-        controls.append(btnL, btnBlind, btnR);
+        controls.append(btnL, btnSil, btnBlur, btnR);
         item.append(pImg, pInput, controls);
         gridArea.appendChild(item);
         updateToggleAllNamesBtn();
     }
 
-    // 표정 이름 표시를 전체 일괄로 켜고 끄는 버튼
     function updateToggleAllNamesBtn() {
         const btn = document.getElementById('btnToggleAllNames');
         if (!btn) return;
@@ -1908,7 +1980,7 @@
         const items = document.querySelectorAll('.collage-item');
         if (!items.length) return;
         const allOff = Array.from(items).every(it => it.dataset.nameOff === 'true');
-        const nextOff = !allOff; // 하나라도 켜져 있으면 우선 전체를 끄고, 전부 꺼져 있으면 전체를 켠다
+        const nextOff = !allOff;
         items.forEach(item => {
             item.dataset.nameOff = nextOff ? 'true' : 'false';
         });
@@ -1916,7 +1988,7 @@
         scheduleAutoPreview();
     });
 
-    // 콜라주 조각을 자동으로 재생성하는 엔진 (버튼 없이 크롭 위치/배율/회전/파일 변경 시 자동 반영)
+    // 콜라주 조각을 자동으로 재생성하는 엔진
     let isGeneratingCollage = false;
     let colAutoGenTimer = null;
 
@@ -1935,14 +2007,16 @@
             const h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value) || 460);
             
             const wrapEl = document.getElementById('colBoxWrap');
-            const cW = wrapEl.clientWidth;
-            const cH = wrapEl.clientHeight;
-            const canvasData = c_col.getCanvasData();
+            const params = {
+                cW: wrapEl.clientWidth, cH: wrapEl.clientHeight,
+                canvasData: c_col.getCanvasData(),
+                rotation: parseInt(document.getElementById('colRotateSlider').value) || 0, // 회전 값도 함께 적용해야 미리보기와 결과가 일치함
+                w, h, fillColor: 'transparent'
+            };
             
             const gridArea = document.getElementById('collageGrid');
             const previewArea = document.getElementById('collagePreviewArea');
 
-            // 기존 조각들의 이름/블라인드/이름표시 상태와 순서를 보존
             const prevItems = Array.from(gridArea.children);
             const prevStateById = {};
             prevItems.forEach(it => {
@@ -1963,56 +2037,21 @@
                 sideOffsetY = 0;
             }
 
-            const stage = document.createElement('div');
-            stage.style.cssText = `position:fixed; top:0; left:0; width:${cW}px; height:${cH}px; opacity:0.001; pointer-events:none; z-index:-9999;`;
-            document.body.appendChild(stage);
-
             const generated = [];
             for (let [idx, file] of f_pt.entries()) {
-                const fileId = f_ptIds[idx]; // f_pt 배열 위치(idx)는 파일 삭제 시 밀릴 수 있으므로, 항상 이 고유 ID로 이름/블라인드 상태를 매칭한다
-                await new Promise((resolve) => {
-                    const img = new Image();
-                    img.style.display = 'block';
-                    img.style.maxWidth = '100%';
-                    img.onload = () => {
-                        new Cropper(img, {
-                            viewMode: 0, autoCropArea: 1, cropBoxMovable: false, cropBoxResizable: false,
-                            center: false, guides: false, highlight: false, background: false, 
-                            aspectRatio: cW / cH,
-                            minContainerWidth: cW, minContainerHeight: cH,
-                            ready() {
-                                this.cropper.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
-                                this.cropper.setCanvasData(canvasData);
-                                
-                                const canvas = this.cropper.getCroppedCanvas({ 
-                                    width: w, height: h, fillColor: 'transparent', imageSmoothingQuality: 'high' 
-                                });
-                                
-                                if(canvas) {
-                                    const b64 = canvas.toDataURL();
-                                    const prev = prevStateById[fileId];
-                                    generated.push({
-                                        fileId,
-                                        src: b64,
-                                        name: prev ? prev.name : getShortName(file.name),
-                                        blindMode: prev ? prev.blindMode : 'none',
-                                        nameOff: prev ? prev.nameOff : false
-                                    });
-                                }
-                                this.cropper.destroy(); 
-                                stage.innerHTML = ''; 
-                                resolve();
-                            }
-                        });
-                    };
-                    img.onerror = resolve;
-                    img.src = URL.createObjectURL(file);
-                    stage.appendChild(img);
+                const fileId = f_ptIds[idx];
+                const canvas = await cropFileToCanvas(file, params);
+                if (!canvas) continue;
+                const prev = prevStateById[fileId];
+                generated.push({
+                    fileId,
+                    src: canvas.toDataURL(),
+                    name: prev ? prev.name : getShortName(file.name),
+                    blindMode: prev ? prev.blindMode : 'none',
+                    nameOff: prev ? prev.nameOff : false
                 });
             }
-            stage.remove();
 
-            // 기존 순서를 최대한 유지하고, 새로 추가된 파일은 뒤에 붙인다
             let ordered;
             if (prevOrder.length) {
                 const byId = {}; generated.forEach(g => byId[g.fileId] = g);
@@ -2024,7 +2063,7 @@
 
             ordered.forEach(g => createCollageItem(g.src, g.name, g.fileId, g.blindMode, g.nameOff));
 
-            await drawFinalCollage(false);
+            await requestRedraw();
         } catch (e) {
             console.error(e);
         } finally {
@@ -2033,12 +2072,13 @@
     }
 
     // 설정값 변경 시 자동으로 최종 미리보기에 반영
-    ['colCols', 'colTextColor', 'colBgColor', 'colMargin', 'colScenarioName', 'colScenarioSize', 'colCharName', 'colCharSize', 'colSideWidth'].forEach(id => {
+    ['colCols', 'colTextColor', 'colBgColor', 'colMargin', 'colScenarioName', 'colScenarioSize', 'colCharName', 'colCharSize'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', scheduleAutoPreview);
     });
     document.getElementById('colSideImg').addEventListener('change', () => {
         globalSideScale = 1.0; sideOffsetX = 0; sideOffsetY = 0;
+        sideAreaWidth = null; // 새 스탠딩을 넣으면 영역 너비는 원본 비율대로 다시 자동 계산
         scheduleAutoPreview();
     });
     document.getElementById('colVerticalText').addEventListener('change', scheduleAutoPreview);
@@ -2078,11 +2118,11 @@
 
     const gridEl = document.getElementById('collageGrid');
     let draggedItem = null;
-    gridEl.addEventListener('dragstart', e => { draggedItem = e.target.closest('.collage-item'); setTimeout(()=>draggedItem.style.opacity='0.5',0); });
+    gridEl.addEventListener('dragstart', e => { draggedItem = e.target.closest('.collage-item'); if (draggedItem) setTimeout(()=>draggedItem.style.opacity='0.5',0); });
     gridEl.addEventListener('dragend', () => { if(draggedItem){ draggedItem.style.opacity='1'; draggedItem = null; scheduleAutoPreview(); }});
     gridEl.addEventListener('dragover', e => {
         e.preventDefault(); const t = e.target.closest('.collage-item');
-        if (t && t !== draggedItem) {
+        if (t && draggedItem && t !== draggedItem) {
             const r = t.getBoundingClientRect();
             gridEl.insertBefore(draggedItem, ((e.clientX - r.left) / (r.right - r.left) > 0.5) ? t.nextSibling : t);
         }
@@ -2094,7 +2134,6 @@
         this.innerText = '포트레이트 모음집 다운로드'; this.disabled = false;
     });
 
-    // data:URL -> Blob (원본 파일을 못 찾을 때의 대체 경로용)
     function dataURLToBlob(dataUrl) {
         const arr = dataUrl.split(',');
         const mime = arr[0].match(/:(.*?);/)[1];
@@ -2105,7 +2144,7 @@
         return new Blob([u8arr], { type: mime });
     }
 
-    // 포트레이트 모아보기 완료 후, 조각별로 '캐릭터명_표정' 파일명의 원본(자르기 해상도, 실루엣/블러 미반영) PNG로 개별 다운로드
+    // '캐릭터명_표정' 파일명으로 "크롭하지 않은 첨부 원본 파일"을 그대로 저장 (이름만 변경)
     document.getElementById('btnDownloadCollagePieces').addEventListener('click', async () => {
         const items = document.querySelectorAll('.collage-item');
         if (items.length === 0) {
@@ -2113,27 +2152,48 @@
             return;
         }
 
+        openZipModal('pieces');
+    });
+
+    async function downloadPiecesZip(zipName) {
+        const items = document.querySelectorAll('.collage-item');
+        if (items.length === 0) return;
+
         const charName = document.getElementById('colCharName').value.trim() || '캐릭터';
         const btn = document.getElementById('btnDownloadCollagePieces');
         const originalText = btn.innerText;
-        btn.disabled = true; btn.innerText = '다운로드 중...';
+        btn.disabled = true; btn.innerText = '압축 파일 생성 중...';
 
         try {
+            const zip = new JSZip();
+            const used = new Set();
             let idx = 1;
             for (const item of items) {
                 const exprName = item.querySelector('input').value.trim() || `표정${idx}`;
-                // 실루엣/블러 설정과 무관하게 항상 원본(가려지지 않은) 크롭 이미지를 사용
-                const blob = dataURLToBlob(item.querySelector('img').src);
-                safeDownloadBlob(blob, `${charName}_${exprName}.png`);
+                const originalFile = findFileByPtId(item.dataset.id);
+                let ext, blob;
+                if (originalFile) {
+                    // 원본 파일 그대로, 확장자도 원본 유지
+                    blob = originalFile; ext = getFileExt(originalFile.name);
+                } else {
+                    // 원본을 찾을 수 없는 경우(예: 원본 없이 불러온 백업)에만 크롭본으로 대체
+                    blob = dataURLToBlob(item.querySelector('img').src); ext = '.png';
+                }
+                // 같은 표정 이름이 겹치면 덮어쓰지 않도록 번호를 붙인다
+                let base = `${charName}_${exprName}`, finalName = base + ext, n = 2;
+                while (used.has(finalName)) finalName = `${base}(${n++})${ext}`;
+                used.add(finalName);
+                zip.file(finalName, blob);
                 idx++;
-                await new Promise(r => setTimeout(r, 150)); // 브라우저가 연속 다운로드를 막지 않도록 약간의 간격을 둠
             }
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            safeDownloadBlob(zipBlob, zipName + '.zip');
         } catch (e) {
-            alert('다운로드 중 오류가 발생했습니다: ' + e.message);
+            alert('ZIP 저장 중 오류가 발생했습니다: ' + e.message);
         } finally {
             btn.disabled = false; btn.innerText = originalText;
         }
-    });
+    }
 </script>
 </body>
 </html>
