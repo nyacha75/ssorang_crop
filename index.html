@@ -950,6 +950,8 @@
                         </div>
                         <span class="field-title">배경 색</span>
                         <div class="seg" role="radiogroup">
+                            <label class="has-tip" data-tip="흰색 배경"><input type="radio" name="bgMode" value="default"><span>기본</span></label>
+                            <label class="has-tip" data-tip="색 없음 · 저장한 PNG의 빈 곳이 투명해요"><input type="radio" name="bgMode" value="transparent"><span>투명</span></label>
                             <label><input type="radio" name="bgMode" value="solid" checked><span>단색</span></label>
                             <label><input type="radio" name="bgMode" value="gradient"><span>그라데이션</span></label>
                         </div>
@@ -1101,7 +1103,7 @@
     // 2-2 배경 추가 (단색 · 그라데이션 · 이미지)
     const bgState = {
         enabled: false, mode: 'solid',
-        scale: 1, offX: 0, offY: 0, opacity: 0.4,   // 배경 이미지 크기·위치·투명도 (mode: 색 레이어 'solid' | 'gradient')
+        scale: 1, offX: 0, offY: 0, opacity: 0.4,   // 배경 이미지 크기·위치·투명도 (mode: 색 레이어 'default' | 'transparent' | 'solid' | 'gradient')
         img: null, file: null,                     // 불러온 배경 이미지
         fromPtId: null,                            // 첨부된 이미지 중에서 고른 배경의 파일 ID
         edit: false                                // '배경 설정 조작' 켜짐 (휠·드래그가 배경에 적용)
@@ -2354,7 +2356,7 @@
             const bgData = data.settings.background;
             if (bgData) {
                 bgState.enabled = !!bgData.enabled;
-                bgState.mode = bgData.mode === 'gradient' ? 'gradient' : 'solid'; // 예전 백업의 'image'는 단색 + 이미지로
+                bgState.mode = ['default', 'transparent', 'solid', 'gradient'].includes(bgData.mode) ? bgData.mode : 'solid'; // 예전 백업의 'image'는 단색 + 이미지로
                 if (bgData.solid) document.getElementById('bgSolidColor').value = bgData.solid;
                 if (bgData.gradA) document.getElementById('bgGradA').value = bgData.gradA;
                 if (bgData.gradB) document.getElementById('bgGradB').value = bgData.gradB;
@@ -2708,8 +2710,10 @@
         cvs.height = Math.max(gridH, sideImg ? sideAreaH : 0) + (gap * 2);
 
         const ctx = cvs.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        if (!(bgState.enabled && bgState.mode === 'transparent')) { // '투명' 배경이면 흰색으로 채우지 않음
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cvs.width, cvs.height);
+        }
         if (bgState.enabled) drawCollageBackground(ctx, cvs.width, cvs.height);
 
         if (sideImg) {
@@ -3236,7 +3240,7 @@
     // ===== 배경 추가 =====
     function drawCollageBackground(ctx, W, H) {
         ctx.save();
-        // 1) 색 레이어: 단색 또는 그라데이션
+        // 1) 색 레이어: 기본(흰색, 이미 채워져 있음) · 투명(칠하지 않음) · 단색 · 그라데이션
         if (bgState.mode === 'solid') {
             ctx.fillStyle = document.getElementById('bgSolidColor').value;
             ctx.fillRect(0, 0, W, H);
