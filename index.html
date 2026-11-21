@@ -410,8 +410,9 @@
             margin-bottom: 18px; padding: 14px 20px; border: 1px solid var(--line); border-radius: 14px;
             background: var(--surface-2);
         }
-        .name-settings[open] > summary { margin-bottom: 12px; }
-        .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin-bottom: 12px; }
+        .name-settings-sub { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+        .name-settings-sub .font-upload { flex: 1 1 240px; }
+        .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
         .final-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 
         /* =========================================================
@@ -789,28 +790,6 @@
                             <label for="colSideImg">직접 올리기</label>
                             <input type="file" id="colSideImg" accept="image/*">
                         </div>
-                        <details class="field collapsible">
-                            <summary class="field-title">텍스트 추가 설정<span class="caret" aria-hidden="true">▼</span></summary>
-                            <div class="field-row" style="margin: 12px 0 14px;">
-                                <div><label for="colLabelSize">표정 이름 크기</label><input type="number" id="colLabelSize" value="55" min="1" class="sm" title="비우거나 자르기 크기를 바꾸면 자동 크기로 다시 맞춰져요"></div>
-                                <div><label for="colLabelV">세로 위치</label>
-                                    <select id="colLabelV">
-                                        <option value="bottom" selected>하단</option>
-                                        <option value="top">상단</option>
-                                    </select>
-                                </div>
-                                <div><label for="colLabelH">가로 위치</label>
-                                    <select id="colLabelH">
-                                        <option value="left">좌측</option>
-                                        <option value="center" selected>중앙</option>
-                                        <option value="right">우측</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <label for="colFontFile">사용자 폰트 업로드</label>
-                            <input type="file" id="colFontFile" accept=".ttf,.otf,.woff,.woff2">
-                            <div id="colFontStatus" class="hint" style="margin-top: 6px; color: var(--text-2);"></div>
-                        </details>
                     </div>
                 </div>
             </div>
@@ -819,6 +798,7 @@
                 <div class="sub-head">
                     <div>
                         <h4><span class="num">①</span>포트레이트 이름 및 순서 수정</h4>
+                        <p class="help-text">드래그로도 순서를 변경할 수 있습니다.</p>
                     </div>
                 </div>
                 <div class="collage-grid" id="collageGrid"></div>
@@ -826,9 +806,8 @@
                 <div class="sub-head">
                     <div>
                         <h4><span class="num">②</span>최종 이미지 미리보기</h4>
-                        <p class="help-text">위쪽 설정을 바꾸면 자동으로 반영됩니다.</p>
                     </div>
-                    <button id="btnToggleAllNames" class="sub-btn fit" style="display: none;">🔤 표정 이름 전체 끄기</button>
+                    <button id="btnToggleAllNames" class="sub-btn fit" style="display: none;">표정 이름 전체 숨기기</button>
                 </div>
                 <div class="preview-stage">
                     <div class="canvas-wrap" id="canvasWrap">
@@ -849,9 +828,12 @@
                     </div>
                 </div>
 
-                <!-- 텍스트 설정: 시나리오명 · 캐릭터 이름 (펼치기 전까지 접힘) -->
-                <details class="field collapsible name-settings" id="colNameField" style="display: none;">
-                    <summary class="field-title">텍스트 설정 <span class="optional">(시나리오명 · 캐릭터 이름)</span><span class="caret" aria-hidden="true">▼</span></summary>
+                <!-- 텍스트 설정: 시나리오명 · 캐릭터 이름 (항상 펼침) + 텍스트 추가 설정 (펼치기 전까지 접힘) -->
+                <div class="field name-settings" id="colNameField" style="display: none;">
+                    <div class="field-title-row">
+                        <span class="field-title">텍스트 설정</span>
+                        <label class="check"><input type="checkbox" id="colVerticalText"> 세로 쓰기</label>
+                    </div>
                     <div class="name-grid">
                         <div>
                             <label for="colScenarioName">시나리오명 <span class="optional">/ 글자 크기</span></label>
@@ -868,8 +850,31 @@
                             </div>
                         </div>
                     </div>
-                    <label class="check"><input type="checkbox" id="colVerticalText"> 세로 쓰기</label>
-                </details>
+                    <details class="collapsible name-settings-sub">
+                        <summary class="field-title">텍스트 추가 설정<span class="caret" aria-hidden="true">▼</span></summary>
+                        <div class="field-row" style="margin-top: 12px;">
+                            <div><label for="colLabelSize">표정 이름 크기</label><input type="number" id="colLabelSize" value="55" min="1" class="sm" title="비우거나 자르기 크기를 바꾸면 자동 크기로 다시 맞춰져요"></div>
+                            <div><label for="colLabelV">세로 위치</label>
+                                <select id="colLabelV">
+                                    <option value="bottom" selected>하단</option>
+                                    <option value="top">상단</option>
+                                </select>
+                            </div>
+                            <div><label for="colLabelH">가로 위치</label>
+                                <select id="colLabelH">
+                                    <option value="left">좌측</option>
+                                    <option value="center" selected>중앙</option>
+                                    <option value="right">우측</option>
+                                </select>
+                            </div>
+                            <div class="font-upload">
+                                <label for="colFontFile">사용자 폰트 업로드</label>
+                                <input type="file" id="colFontFile" accept=".ttf,.otf,.woff,.woff2">
+                            </div>
+                        </div>
+                        <div id="colFontStatus" class="hint" style="margin-top: 6px; color: var(--text-2);"></div>
+                    </details>
+                </div>
 
                 <button id="btnDownloadCollage" class="action-btn">포트레이트 모음집 다운로드</button>
                 <div class="final-actions">
@@ -2411,9 +2416,11 @@
             }
         }
 
-        const cvs = isDownload ? document.createElement('canvas') : document.getElementById('finalCollageCanvas');
+        // 깜빡임 방지: 보이지 않는 캔버스에 전부 그린 뒤, 마지막에 한 번에 화면 캔버스로 옮긴다
+        const cvs = document.createElement('canvas');
+        const visibleCvs = isDownload ? null : document.getElementById('finalCollageCanvas');
         if (!isDownload) {
-            cvs.style.display = 'inline-block';
+            visibleCvs.style.display = 'inline-block';
             // 너비 조절 바 동기화
             const wrap = document.getElementById('canvasWrap');
             if (wrap) wrap.classList.toggle('has-side', !!sideImg);
@@ -2566,6 +2573,12 @@
             }
         }
 
+        if (!isDownload) {
+            visibleCvs.width = cvs.width;
+            visibleCvs.height = cvs.height;
+            visibleCvs.getContext('2d').drawImage(cvs, 0, 0);
+        }
+
         if (isDownload) {
             let finalName = '';
             if (scenarioName && charName) finalName = `${scenarioName}_${charName}_포트레이트 정리본.png`;
@@ -2673,7 +2686,7 @@
         if (!items.length) { btn.style.display = 'none'; return; }
         btn.style.display = 'inline-block';
         const allOff = Array.from(items).every(it => it.dataset.nameOff === 'true');
-        btn.innerText = allOff ? '🔤 표정 이름 전체 켜기' : '🔤 표정 이름 전체 끄기';
+        btn.innerText = allOff ? '표정 이름 전체 숨기기 해제' : '표정 이름 전체 숨기기';
     }
 
     document.getElementById('btnToggleAllNames').addEventListener('click', () => {
@@ -2821,7 +2834,6 @@
             const prevOrder = prevItems.map(it => it.dataset.id);
             const isFirstGeneration = previewArea.style.display === 'none' || prevItems.length === 0;
 
-            gridArea.innerHTML = '';
             previewArea.style.display = 'block';
             if (isFirstGeneration) {
                 globalSideScale = 1.0;
@@ -2856,6 +2868,9 @@
                 ordered = generated;
             }
 
+            // 깜빡임 방지: 새 이미지를 미리 디코딩해 두고, 기존 카드는 마지막 순간에 한 번에 교체
+            await Promise.all(ordered.map(g => { const im = new Image(); im.src = g.src; return im.decode().catch(() => {}); }));
+            gridArea.innerHTML = '';
             ordered.forEach(g => createCollageItem(g.src, g.name, g.fileId, g.blindMode, g.nameOff));
 
             await requestRedraw();
