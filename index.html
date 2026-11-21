@@ -328,16 +328,19 @@
         /* 추가로 삽입할 스탠딩: 첨부 이미지 썸네일 선택 */
         .side-picker { display: flex; flex-wrap: wrap; gap: 6px; max-height: 148px; overflow-y: auto; }
         .side-thumb {
-            width: 56px; height: 56px; padding: 0; border: 2px solid var(--line); border-radius: 9px; overflow: hidden;
+            position: relative; width: 56px; height: 56px; padding: 0; border: 2px solid var(--line); border-radius: 9px; overflow: hidden;
             background: #fff; cursor: pointer; transition: border-color .15s, transform .1s;
         }
         .side-thumb:hover { border-color: var(--primary-line); }
         .side-thumb.on { border-color: var(--primary); box-shadow: var(--ring); }
+        /* 선택한 썸네일에는 미리보기 속 스탠딩 영역(휠 확대·드래그 반영)을 그대로 보여준다 */
+        .side-thumb-live { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
         .side-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; pointer-events: none; }
 
         .collage-preview-wrapper { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line); }
         .sub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
         .sub-head h4 { margin: 0; font-size: 15.5px; font-weight: 800; color: var(--text); }
+        .sub-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .sub-head h4 .num { color: var(--primary); margin-right: 4px; }
 
         /* 표정 목록 (이름·순서 수정) — 일반 input 규칙보다 뒤에 있어야 함 */
@@ -370,7 +373,7 @@
 
         /* 최종 이미지 미리보기 */
         /* 회색 틀 없이 실제 결과 이미지만 보이도록 */
-        .preview-stage { text-align: center; margin-bottom: 18px; overflow-x: auto; }
+        .preview-stage { text-align: center; margin-bottom: 18px; } /* 조절 바가 아래로 튀어나와도 잘리지 않도록 overflow 없음 */
         .canvas-wrap { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
         #finalCollageCanvas { cursor: grab; }
         #finalCollageCanvas:active { cursor: grabbing; }
@@ -389,16 +392,19 @@
             padding: 6px 10px; border-radius: 7px; box-shadow: 0 4px 12px rgba(15, 23, 42, .2);
         }
 
-        /* 미리보기에 마우스를 올리면 나타나는 스탠딩 너비·높이 조절 바 */
+        /* 스탠딩 너비·높이 조절 바: 미리보기에 마우스를 올렸을 때만 스탠딩(반신) 바로 밑에 표시 (위치는 JS에서 계산) */
         .side-width-bar {
-            display: none; position: absolute; left: 10px; bottom: 10px; z-index: 5;
-            width: min(360px, calc(100% - 20px)); box-sizing: border-box;
-            align-items: center; gap: 8px; padding: 8px 12px;
-            background: rgba(255, 255, 255, .95); border: 1px solid var(--line-strong); border-radius: 10px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, .15); font-size: 12px; color: #334155;
+            display: none; position: absolute; top: 100%; left: 0; z-index: 6;
+            box-sizing: border-box; width: 300px; padding-top: 8px; /* 위쪽 여백도 마우스 영역에 포함돼서 바까지 이동해도 안 사라짐 */
+            text-align: left; font-size: 12px; color: #334155;
             opacity: 0; pointer-events: none; transition: opacity .15s;
         }
-        .canvas-wrap.has-side .side-width-bar { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+        .side-width-bar .bar-box {
+            display: flex; flex-direction: column; gap: 6px; padding: 8px 12px;
+            background: rgba(255, 255, 255, .97); border: 1px solid var(--line-strong); border-radius: 10px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
+        }
+        .canvas-wrap.has-side .side-width-bar { display: block; }
         .canvas-wrap.has-side:hover .side-width-bar,
         .canvas-wrap.has-side .side-width-bar:focus-within { opacity: 1; pointer-events: auto; }
         .side-width-bar .bar-row { display: flex; align-items: center; gap: 8px; }
@@ -772,7 +778,6 @@
                             <div class="field-title-row">
                                 <span class="field-title">추가로 삽입할 스탠딩 <span class="optional">(선택)</span></span>
                                 <span class="title-actions">
-                                    <button type="button" id="btnResetSideImg" class="link-btn neutral" style="display: none;" title="스탠딩의 위치·배율과 영역 너비·높이를 처음 상태로 되돌려요">🔄 위치·크기 초기화</button>
                                     <button type="button" id="btnClearSideImg" class="link-btn" style="display: none;">✕ 스탠딩 빼기</button>
                                 </span>
                             </div>
@@ -807,13 +812,17 @@
                     <div>
                         <h4><span class="num">②</span>최종 이미지 미리보기</h4>
                     </div>
-                    <button id="btnToggleAllNames" class="sub-btn fit" style="display: none;">표정 이름 전체 숨기기</button>
+                    <div class="sub-head-actions">
+                        <button type="button" id="btnResetSideImg" class="sub-btn fit has-tip" style="display: none;" data-tip="스탠딩의 위치·배율과 영역 너비·높이를 처음 상태로 되돌려요">스탠딩 위치·크기 초기화</button>
+                        <button id="btnToggleAllNames" class="sub-btn fit" style="display: none;">표정 이름 전체 숨기기</button>
+                    </div>
                 </div>
                 <div class="preview-stage">
                     <div class="canvas-wrap" id="canvasWrap">
                         <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
                         <div class="cell-hover" id="cellHover" data-tip="눌러서 크롭 (전체 또는 이 표정만)"><span>✂️ 눌러서 크롭</span></div>
                         <div class="side-width-bar" id="sideWidthBar">
+                            <div class="bar-box">
                             <div class="bar-row">
                                 <span>스탠딩 너비</span>
                                 <input type="range" id="sideWidthSlider" min="50" max="2000" step="1" value="300">
@@ -823,6 +832,7 @@
                                 <span>스탠딩 높이</span>
                                 <input type="range" id="sideHeightSlider" min="50" max="4000" step="1" value="800">
                                 <span id="sideHeightValue">800px</span>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -1641,15 +1651,20 @@
         resetFineZoom('pt', 'col');
 
         const newFiles = Array.from(e.target.files);
-        f_pt = f_pt.concat(newFiles);
-        f_ptIds = f_ptIds.concat(newFiles.map(() => genFilePtId()));
+        const wasFirstId = f_ptIds[0];
+        addPortraitFilesInOrder(newFiles);
         e.target.value = '';
 
         renderPortraitFileList();
+        syncCollageOrderToFiles();
 
         if (isFirstLoad) {
             document.getElementById('portraitRotateSlider').value = 0; document.getElementById('ptRotateValue').innerText = "0°";
             document.getElementById('colRotateSlider').value = 0; document.getElementById('colRotateValue').innerText = "0°";
+            loadCropper('pt'); loadCropper('col');
+        } else if (f_ptIds[0] !== wasFirstId) {
+            // '기본' 파일이 새로 맨 앞에 오면 미리보기 기준 이미지도 바뀐다
+            stashCropVerbatim('pt'); stashCropVerbatim('col');
             loadCropper('pt'); loadCropper('col');
         } else {
             scheduleCollageAutoGenerate();
@@ -2275,8 +2290,20 @@
         const cvs = document.getElementById('finalCollageCanvas');
         let isDragging = false, lastX = 0, lastY = 0;
 
+        // 마우스가 스탠딩 영역 위에 있을 때만 true (캔버스 표시 크기 → 실제 픽셀 좌표로 환산)
+        const isOverSide = (e) => {
+            const S = lastCollageLayout && lastCollageLayout.side;
+            if (!S) return false;
+            const r = cvs.getBoundingClientRect();
+            const k = cvs.width / r.width;
+            const x = (e.clientX - r.left) * k, y = (e.clientY - r.top) * k;
+            return x >= S.x && x <= S.x + S.w && y >= S.y && y <= S.y + S.h;
+        };
+
+        // 스탠딩 위에서만 휠로 확대/축소 (그 밖에서는 페이지가 그대로 스크롤된다)
         cvs.addEventListener('wheel', async (e) => {
             if(!document.getElementById('colSideImg').files[0]) return;
+            if (!isOverSide(e)) return;
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             globalSideScale = Math.max(0.1, Math.min(5.0, globalSideScale + delta));
@@ -2456,9 +2483,14 @@
             ctx.drawImage(sideImg, -sideBaseW / 2, -sideBaseH / 2, sideBaseW, sideBaseH);
             ctx.restore();
         }
+        // 선택한 '첨부 이미지' 썸네일도 미리보기와 같은 확대·위치로 보이게 (이름 글자를 그리기 전 상태)
+        if (!isDownload) updateSideThumbLive(sideImg ? cvs : null, sideX, gap, sideAreaW, sideAreaH);
 
         const offsetX = gap + (sideImg && !sideOnRight ? sideAreaW + gap : 0);
-        if (!isDownload) lastCollageLayout = { offsetX, gap, w, h, cols, count: items.length };
+        if (!isDownload) lastCollageLayout = {
+            offsetX, gap, w, h, cols, count: items.length,
+            side: sideImg ? { x: sideX, y: gap, w: sideAreaW, h: sideAreaH } : null // 스탠딩 영역 (휠 확대 판정용)
+        };
 
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(offsetX - gap / 2, 0, gridW + gap, cvs.height);
@@ -2577,6 +2609,15 @@
             visibleCvs.width = cvs.width;
             visibleCvs.height = cvs.height;
             visibleCvs.getContext('2d').drawImage(cvs, 0, 0);
+            // 조절 바를 스탠딩 영역 바로 밑에 맞춘다 (캔버스 표시 배율 반영)
+            if (sideImg) {
+                const bar = document.getElementById('sideWidthBar');
+                const k = (visibleCvs.clientWidth || visibleCvs.width) / visibleCvs.width;
+                const barW = Math.max(260, sideAreaW * k);
+                const left = Math.max(0, Math.min(sideX * k, (visibleCvs.clientWidth || barW) - barW));
+                bar.style.left = left + 'px';
+                bar.style.width = barW + 'px';
+            }
         }
 
         if (isDownload) {
@@ -2930,6 +2971,40 @@
             customFontName = null; customFontDataUrl = null;
         }
     });
+
+    // 파일 추가: 처음 올릴 때(목록이 비어 있을 때)만 자동 정렬하고, 그 뒤로 추가하는 파일은 올린 순서대로 뒤에 붙인다.
+    // 이미 올린 파일의 순서는 어떤 경우에도 바꾸지 않는다.
+    //  처음 올릴 때: 표정 이름이 '기본'인 파일 → 맨 앞, 파일명에 '광기'가 들어간 파일 → 맨 뒤, 나머지 → 올린 순서
+    function addPortraitFilesInOrder(newFiles) {
+        let ordered = newFiles;
+        if (f_pt.length === 0) {
+            const isBasic = (f) => getShortName(f.name).trim() === '기본';
+            const isMad = (f) => !isBasic(f) && f.name.includes('광기');
+            ordered = [
+                ...newFiles.filter(isBasic),
+                ...newFiles.filter(f => !isBasic(f) && !isMad(f)),
+                ...newFiles.filter(isMad)
+            ];
+        }
+        f_pt = f_pt.concat(ordered);
+        f_ptIds = f_ptIds.concat(ordered.map(() => genFilePtId()));
+    }
+
+    // 선택된 스탠딩 썸네일에 미리보기 속 스탠딩 영역을 축소해서 그린다 (정사각형, 위쪽 기준으로 채움)
+    function updateSideThumbLive(src, sx, sy, sw, sh) {
+        const thumb = src ? document.querySelector('#colSidePicker .side-thumb.on') : null;
+        document.querySelectorAll('#colSidePicker .side-thumb-live').forEach(c => { if (c.parentElement !== thumb) c.remove(); });
+        if (!thumb || sw <= 0 || sh <= 0) return;
+        let c = thumb.querySelector('.side-thumb-live');
+        if (!c) { c = document.createElement('canvas'); c.className = 'side-thumb-live'; thumb.appendChild(c); }
+        const size = Math.max(1, Math.round(thumb.clientWidth * (window.devicePixelRatio || 1)));
+        c.width = size; c.height = size;
+        const g = c.getContext('2d');
+        g.fillStyle = '#ffffff';
+        g.fillRect(0, 0, size, size);
+        const k = Math.max(size / sw, size / sh);
+        g.drawImage(src, sx, sy, sw, sh, (size - sw * k) / 2, 0, sw * k, sh * k);
+    }
 
     // 첨부 파일 목록 순서에 맞춰 2-2 표정 목록(→ 최종 미리보기) 순서를 다시 정렬
     function syncCollageOrderToFiles() {
