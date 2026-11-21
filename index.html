@@ -596,7 +596,7 @@
 <div class="modal-overlay" id="zipNameModal">
     <div class="modal-box">
         <h3>📁 ZIP 파일명 입력</h3>
-        <input type="text" id="zipNameInput" value="AhpuhVOID_Fighting" placeholder="ZIP 파일명 입력">
+        <input type="text" id="zipNameInput" value="" placeholder="ZIP 파일명 입력">
         <div class="modal-btns">
             <button class="btn-cancel" id="zipNameCancel">취소</button>
             <button class="btn-confirm" id="zipNameConfirm">다운로드</button>
@@ -2165,11 +2165,28 @@
         const ch = document.getElementById('colCharName').value.trim();
         return [sc, ch, '스탠딩'].filter(Boolean).join('_');
     }
+    // 파일명에서 캐릭터 이름 부분만: 끝의 ( ) 또는 마지막 '_' · '@' · '-' 뒤의 표정 이름을 뺀다 (getShortName의 반대)
+    const getCharBaseName = (filename) => {
+        const b = filename.replace(/\.[^/.]+$/, "").trim();
+        const noParen = b.replace(/\s*[(（][^()（）]+[)）]\s*$/, '').trim();
+        if (noParen && noParen !== b) return noParen;
+        const m = /^(.*)[_@-][^_@-]*$/.exec(b);
+        return m && m[1].trim() ? m[1].trim() : b;
+    };
+    // 스탠딩·컷인 ZIP 기본 이름: 텍스트 설정에 입력한 캐릭터 이름이 있으면 그것, 없으면 첫 번째 첨부 파일의 캐릭터 이름 + '_ssorang'
+    //  (예: 캐릭터 이름 '루티' → 루티_ssorang / 루티_기본.png → 루티_ssorang)
+    function getDefaultZipName(target) {
+        const typedName = document.getElementById('colCharName').value.trim();
+        if (typedName) return `${typedName}_ssorang`;
+        const list = target === 'ci' ? f_ci : f_pt;
+        const first = list.find(f => f);
+        return first ? `${getCharBaseName(first.name)}_ssorang` : 'ssorang';
+    }
     function openZipModal(target) {
         const modal = document.getElementById('zipNameModal');
         modal.dataset.targetTab = target;
         document.getElementById('zipNameInput').value =
-            target === 'pieces' ? getPiecesDefaultZipName() : (zipNameMemory[target] || 'AhpuhVOID_Fighting');
+            target === 'pieces' ? getPiecesDefaultZipName() : (zipNameMemory[target] || getDefaultZipName(target));
         modal.classList.add('open');
     }
 
@@ -2182,7 +2199,7 @@
         const targetTab = modal.dataset.targetTab;
         modal.classList.remove('open');
         const customZipName = document.getElementById('zipNameInput').value.trim()
-            || (targetTab === 'pieces' ? getPiecesDefaultZipName() : 'AhpuhVOID_Fighting');
+            || (targetTab === 'pieces' ? getPiecesDefaultZipName() : getDefaultZipName(targetTab));
         if (targetTab !== 'pieces') zipNameMemory[targetTab] = customZipName;
 
         if (targetTab === 'pieces') { await downloadPiecesZip(customZipName); return; }
@@ -3209,9 +3226,13 @@
         if (el) el.addEventListener('input', scheduleAutoPreview);
     });
     document.getElementById('colSideImg').addEventListener('change', () => {
-        globalSideScale = 1.0; sideOffsetX = 0; sideOffsetY = 0;
-        sideAreaWidth = null; // 새 스탠딩을 넣으면 영역 너비는 원본 비율대로 다시 자동 계산
-        sideAreaHeight = null;
+        // '첨부된 이미지에서 고르기'로 다른 이미지로 바꾼 경우에는 미리보기에서 맞춘 배율·위치·영역 크기를 그대로 둔다
+        const pickedFromList = sideChangeFromCode && !!document.getElementById('colSideImg').files[0];
+        if (!pickedFromList) {
+            globalSideScale = 1.0; sideOffsetX = 0; sideOffsetY = 0;
+            sideAreaWidth = null; // 새 스탠딩을 직접 올리면 영역 너비는 원본 비율대로 다시 자동 계산
+            sideAreaHeight = null;
+        }
         if (!sideChangeFromCode) sideFromPtId = null; // 직접 올린 파일이면 '첨부 이미지 선택' 표시 해제
         sideChangeFromCode = false;
         updateSideUI();
@@ -3323,9 +3344,10 @@
         const input = document.getElementById('bgImgFile');
         if (file) { const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; }
         else input.value = '';
+        const hadImage = !!bgState.img;
         bgState.fromPtId = fromPtId || null;
         await loadBgImageFile(file);
-        resetBgTransform();
+        if (!hadImage) resetBgTransform(); // 다른 이미지로 바꿔 고른 경우에는 미리보기에서 맞춘 크기·위치를 그대로 둔다
         updateBgPickerUI();
         scheduleAutoPreview();
     }
