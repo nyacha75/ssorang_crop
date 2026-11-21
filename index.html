@@ -346,6 +346,15 @@
 
         /* 표정 목록 (이름·순서 수정) — 일반 input 규칙보다 뒤에 있어야 함 */
         .collage-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin-bottom: 28px; }
+        .collage-item { position: relative; }
+        .collage-del, .collage-del.has-tip { /* .has-tip의 position: relative 보다 우선 */
+            position: absolute; top: 4px; right: 4px; z-index: 2;
+            width: 22px; height: 22px; padding: 0; border: none; border-radius: 50%;
+            background: rgba(255, 255, 255, .9); color: var(--text-3); font-size: 11px; font-weight: 700; cursor: pointer;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .15); opacity: 0; transition: opacity .15s, background .15s, color .15s;
+        }
+        .collage-item:hover .collage-del, .collage-del:focus-visible { opacity: 1; }
+        .collage-del:hover { background: #fee2e2; color: var(--danger); }
         .collage-item {
             display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px;
             background: #fff; border: 1px solid var(--line); border-radius: 12px;
@@ -3008,6 +3017,15 @@
         btnBlur.onclick = () => setMode('blur');
 
         controls.append(btnL, btnSil, btnBlur, btnR);
+
+        // 표정 삭제 (카드 오른쪽 위 ✕): 첨부 파일 목록에서도 함께 빠진다
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'collage-del has-tip';
+        btnDel.dataset.tip = '표정 삭제';
+        btnDel.innerText = '✕';
+        btnDel.onclick = (e) => { e.stopPropagation(); removePortraitFileById(item.dataset.id); };
+        item.appendChild(btnDel);
         const thumb = document.createElement('div');
         thumb.className = 'collage-thumb';
         if (itemCropOverrides[fileId]) item.classList.add('custom-crop');
@@ -3386,6 +3404,25 @@
         requestRedraw();
     });
     syncBgUI();
+
+    // 표정(첨부 파일) 하나 삭제: 첨부 목록·2-2 표정 목록·최종 미리보기에서 모두 빠진다
+    function removePortraitFileById(id) {
+        const index = f_ptIds.indexOf(id);
+        if (index < 0) return;
+        f_pt.splice(index, 1);
+        f_ptIds.splice(index, 1);
+        delete itemCropOverrides[id];
+        document.querySelector(`.collage-item[data-id="${id}"]`)?.remove();
+        updateToggleAllNamesBtn();
+        renderPortraitFileList();
+        if (index === 0 && f_pt.length > 0) {
+            // 맨 앞 파일이 바뀌면 미리보기 기준 이미지도 다시 불러온다
+            stashCropVerbatim('pt'); stashCropVerbatim('col');
+            loadCropper('pt'); loadCropper('col');
+        } else if (f_pt.length > 0) {
+            scheduleAutoPreview();
+        }
+    }
 
     // 첨부 파일 목록 순서에 맞춰 2-2 표정 목록(→ 최종 미리보기) 순서를 다시 정렬
     function syncCollageOrderToFiles() {
