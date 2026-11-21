@@ -4,168 +4,477 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>쏘랑 커팅기</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <style>
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
+            --primary-soft: #eff6ff;
+            --primary-line: #bfdbfe;
+            --bg: #f3f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --line: #e6eaf0;
+            --line-strong: #cfd6e1;
+            --text: #0f172a;
+            --text-2: #475569;
+            --text-3: #94a3b8;
+            --danger: #dc2626;
+            --danger-soft: #fef2f2;
+            --warm: #c2410c;
+            --warm-soft: #fff7ed;
+            --warm-line: #fed7aa;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
+            --shadow: 0 1px 3px rgba(15, 23, 42, .04), 0 8px 24px rgba(15, 23, 42, .05);
+            --ring: 0 0 0 3px rgba(37, 99, 235, .18);
         }
+        html { scroll-behavior: smooth; }
         body {
-            font-family: 'Pretendard', -apple-system, sans-serif;
-            margin: 0; padding: 20px; background-color: #f0f2f5; color: #333;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            margin: 0; padding: 0 20px 60px; background: var(--bg); color: var(--text);
+            -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; line-height: 1.5;
         }
-        .container {
-            max-width: 1100px; margin: 0 auto; background: #fff; padding: 25px;
-            border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-            display: flex; flex-direction: column; gap: 20px;
-        }
-        h2 { text-align: center; margin-top: 0; color: #1e293b; letter-spacing: -0.5px; }
-        
-        .tabs { display: flex; justify-content: center; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; }
-        .tab-btn {
-            padding: 12px 30px; cursor: pointer; border: none; background: none;
-            font-size: 16px; font-weight: 600; color: #94a3b8;
-            border-bottom: 3px solid transparent; transition: 0.3s;
-        }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        strong { font-weight: 700; }
 
-        .split-layout { display: flex; gap: 25px; align-items: stretch; margin-top: 10px; }
+        /* ===== 헤더 & 탭 ===== */
+        .app-header {
+            position: sticky; top: 0; z-index: 100;
+            margin: 0 -20px 24px; padding: 14px 20px;
+            background: rgba(243, 245, 249, .85);
+            backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px);
+            border-bottom: 1px solid var(--line);
+        }
+        .app-header-inner {
+            max-width: 1140px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; font-size: 20px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, .3);
+        }
+        .brand h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
+        .brand p { margin: 0; font-size: 12.5px; color: var(--text-3); }
+
+        .tabs {
+            display: inline-flex; gap: 4px; padding: 4px;
+            background: #e8ecf3; border-radius: 12px;
+        }
+        .tab-btn {
+            padding: 9px 18px; cursor: pointer; border: none; background: none; border-radius: 9px;
+            font-family: inherit; font-size: 14.5px; font-weight: 600; color: var(--text-2);
+            transition: background .2s, color .2s, box-shadow .2s; white-space: nowrap;
+        }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(15,23,42,.1); }
+
+        .container { max-width: 1140px; margin: 0 auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; flex-direction: column; gap: 20px; animation: tabFade .25s ease; }
+        /* 탭 전환은 투명도만 바꾼다 (transform을 쓰면 화면 하단 고정 카드가 잠깐 튀어서) */
+        @keyframes tabFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+        /* ===== 카드 / 섹션 ===== */
+        .section {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 24px;
+        }
+        .section-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+        .step-badge {
+            flex: 0 0 auto; min-width: 38px; height: 28px; padding: 0 8px; border-radius: 8px;
+            background: var(--primary-soft); color: var(--primary); font-weight: 800; font-size: 13px;
+            display: grid; place-items: center; border: 1px solid var(--primary-line);
+        }
+        .section-head .head-action { margin-left: auto; align-self: center; }
+        .section-head h3 { margin: 2px 0 4px; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+        .help-text { margin: 0; font-size: 13.5px; color: var(--text-2); line-height: 1.65; }
+        .help-text strong { color: var(--primary); }
+        .hint { font-size: 12px; color: var(--text-3); line-height: 1.55; margin: 0; }
+
+        /* 파일 업로드 영역 */
+        .dropzone {
+            background: var(--surface); border: 2px dashed var(--line-strong); border-radius: var(--radius);
+            padding: 24px; text-align: center; transition: border-color .2s, background .2s;
+        }
+        .dropzone:hover { border-color: var(--primary-line); background: #fbfdff; }
+        .dropzone-icon {
+            width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 12px; display: grid; place-items: center;
+            background: var(--primary-soft); font-size: 22px;
+        }
+        .dropzone-title { display: block; margin: 0 0 4px; font-size: 16px; font-weight: 700; color: var(--text); }
+        .dropzone .dropzone-title { margin-bottom: 14px; }
+        .dropzone p { margin: -8px 0 14px; font-size: 13px; color: var(--text-2); }
+        .dropzone input[type="file"] { max-width: 480px; margin: 0 auto; display: block; }
+        .file-count {
+            display: inline-block; margin-top: 14px; padding: 4px 12px; border-radius: 999px;
+            background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 700;
+        }
+        .dropzone .sub-btn.danger { display: none; width: 100%; max-width: 240px; margin: 12px auto 0; }
+
+        /* 백업 불러오기 안내 박스 */
+        .callout {
+            background: var(--primary-soft); border: 1px solid var(--primary-line); border-radius: 12px;
+            padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        }
+        .callout-text { flex: 1; min-width: 200px; }
+        .callout-text b { display: block; font-size: 14px; color: #1d4ed8; margin-bottom: 2px; }
+        .callout-text span { font-size: 12.5px; color: var(--text-2); }
+
+        /* ===== 작업 영역 ===== */
+        .split-layout { display: flex; gap: 22px; align-items: stretch; }
         .split-left-wrapper {
-            flex: 0 0 500px; height: 500px; background-color: #f1f5f9;
-            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            /* 회색 틀 없이 미리보기(파란 테두리 박스)만 보이도록: 배경·테두리 제거, 높이는 미리보기에 맞춤 */
+            flex: 0 0 500px; overflow: visible;
+            display: flex; align-items: flex-start; justify-content: center;
+            background: none; border: none; padding: 0;
+            position: sticky; top: 88px; align-self: flex-start;
         }
         .canvas-box-wrap {
-            position: relative; 
-            border: 3px solid var(--primary);
-            box-sizing: content-box; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
+            position: relative; flex: 0 0 auto;
+            border: 3px solid var(--primary); border-radius: 2px;
+            box-sizing: content-box;
+            overflow: hidden;
             background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
             background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: #fff;
         }
         .canvas-box-wrap img { display: block; max-width: 100%; }
         .overlay-guide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
-        
+
         .split-right {
-            flex: 1; display: flex; flex-direction: column; gap: 15px;
-            background: var(--bg); padding: 25px; border-radius: 10px; border: 1px solid #e2e8f0;
-            max-height: 800px; overflow-y: auto;
+            flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0;
+            background: var(--surface-2); padding: 6px 20px 20px; border-radius: 14px; border: 1px solid var(--line);
         }
+        .split-left-col {
+            flex: 0 0 500px; display: flex; flex-direction: column; gap: 12px;
+            position: sticky; top: 88px; align-self: flex-start;
+        }
+        .split-left-col .split-left-wrapper { flex: 0 0 auto; position: static; align-self: stretch; }
+        /* 2-2: 작아진 미리보기는 왼쪽 칸 안에서 가로 중앙 정렬 (세로 여백 없이 설명 바로 아래부터 시작) */
+        .split-right.fit-content { align-self: flex-start; }
+        .split-right-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; align-self: flex-start; }
+        /* 2-2: 접힌 상태 기준으로 미리보기와 설정 패널을 세로 중앙 정렬 (펼쳐도 미리보기는 고정, JS에서 여백 계산) */
+        .split-layout.center-y { align-items: flex-start; }
+        .split-layout.center-y > * { align-self: flex-start; position: static; }
+        .split-right-col .split-right { flex: none; align-self: stretch; }
+        .field { padding: 16px 0; border-bottom: 1px solid var(--line); }
+        .field:last-child, .field:has(+ .actions) { border-bottom: none; } /* 마지막 설정 아래 구분선 없음 */
+        details.collapsible > summary {
+            list-style: none; cursor: pointer; user-select: none; margin: 0;
+            display: flex; align-items: center; gap: 6px;
+        }
+        details.collapsible > summary::-webkit-details-marker { display: none; }
+        .caret { display: inline-block; font-size: 10px; color: var(--text-3); transition: transform .2s; }
+        details.collapsible[open] .caret, .field.expanded .caret { transform: rotate(180deg); }
+        details.collapsible > summary:hover .caret { color: var(--primary); }
+        .field-title {
+            display: block; margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--text);
+        }
+        select {
+            height: 36px; padding: 0 32px 0 12px; border: 1px solid var(--line-strong); border-radius: 8px;
+            font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text); cursor: pointer;
+            appearance: none; -webkit-appearance: none;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+        }
+        select:focus { outline: none; border-color: var(--primary); box-shadow: var(--ring); }
+        .rotate-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .rotate-row input[type="range"] { flex: 1 1 110px; min-width: 90px; }
+        .rotate-row .mono-value { width: 42px; }
+        .rotate-row .sub-btn { flex: 0 0 auto; padding: 8px 10px; font-size: 12.5px; }
+        .rotate-row.subtle input[type="range"] { accent-color: #94a3b8; height: 4px; }
+        .rotate-row.subtle .mono-value { color: var(--text-3); font-weight: 600; font-size: 12px; }
+        .rotate-row.subtle .sub-btn {
+            background: transparent; border-color: var(--line); color: var(--text-3);
+            padding: 5px 8px; font-size: 12px; font-weight: 500;
+        }
+        .rotate-row.subtle .sub-btn:hover { background: #eef1f6; color: var(--text-2); }
+        .field-title-row .title-actions { display: inline-flex; gap: 2px; }
+        .link-btn.neutral:hover { color: var(--primary); background: var(--primary-soft); }
+        .field-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .field-title-row .field-title { margin: 0; }
+        .optional { color: var(--text-3); font-weight: 500; }
+        .link-btn { border: none; background: none; padding: 2px 4px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-3); cursor: pointer; border-radius: 6px; }
+        .link-btn:hover { color: var(--danger); background: var(--danger-soft); }
+        .side-picker { display: flex; flex-wrap: wrap; gap: 6px; max-height: 148px; overflow-y: auto; }
+        .side-thumb {
+            width: 56px; height: 56px; padding: 0; border: 2px solid var(--line); border-radius: 9px; overflow: hidden;
+            background: #fff; cursor: pointer; transition: border-color .15s, transform .1s;
+        }
+        .side-thumb:hover { border-color: var(--primary-line); }
+        .side-thumb.on { border-color: var(--primary); box-shadow: var(--ring); }
+        .side-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; pointer-events: none; }
+        .toast {
+            position: fixed; left: 50%; bottom: 28px; z-index: 10000; width: min(440px, calc(100% - 32px)); box-sizing: border-box;
+            transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+            background: #0f172a; color: #e2e8f0; border-radius: 14px; padding: 14px 18px; box-shadow: 0 12px 32px rgba(15,23,42,.3);
+            font-size: 13px; line-height: 1.6; transition: opacity .25s, transform .25s; cursor: pointer;
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+        .toast b { display: block; color: #fff; font-size: 14px; margin-bottom: 2px; }
+        .has-tip { position: relative; }
+        .has-tip::after {
+            content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px);
+            transform: translate(-50%, 4px); white-space: nowrap; pointer-events: none;
+            background: #0f172a; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 7px;
+            box-shadow: 0 4px 12px rgba(15,23,42,.2); opacity: 0; transition: opacity .15s, transform .15s; z-index: 20;
+        }
+        .has-tip:hover::after { opacity: 1; transform: translate(-50%, 0); }
+        .link-card {
+            overflow: hidden; isolation: isolate;
+            display: flex; align-items: center; gap: 12px;
+            /* 컷인 탭에서 브라우저 화면 맨 아래에 고정 */
+            position: fixed; left: 50%; bottom: 16px; z-index: 90; transform: translateX(-50%);
+            width: calc(100% - 32px); max-width: 420px; box-sizing: border-box;
+            padding: 12px 18px 16px; border-radius: 14px; text-decoration: none; color: #fff;
+            background: linear-gradient(120deg, #0ea5e9 0%, #2563eb 55%, #4f46e5 100%);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, .25);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        #tab-cutin.active { padding-bottom: 90px; } /* 고정 카드에 내용이 가려지지 않도록 */
+        .link-card:hover { transform: translate(-50%, -2px); box-shadow: 0 14px 32px rgba(37, 99, 235, .32); }
+        .link-card-icon {
+            flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+            font-size: 18px; background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .25);
+        }
+        .link-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .link-card-tag {
+            align-self: flex-start; padding: 0 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+            background: rgba(255, 255, 255, .2); color: #e0f2fe; letter-spacing: 0;
+        }
+        .link-card-text b { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
+        .link-card-go {
+            margin-left: auto; flex: 0 0 auto; padding: 6px 12px; border-radius: 999px;
+            background: #fff; color: #1d4ed8; font-size: 12px; font-weight: 700; white-space: nowrap;
+            transition: background .15s;
+        }
+        .link-card:hover .link-card-go { background: #e0f2fe; }
+        .link-card-wave { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 22px; z-index: -1; }
+        @media (max-width: 640px) {
+            .link-card { padding: 10px 14px 14px; gap: 10px; }
+            .link-card-go { padding: 5px 9px; font-size: 11.5px; }
+            .link-card-text b { font-size: 14px; }
+        }
+        .inline-field { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .inline-field .field-title { margin: 0; }
+        .color-collapse {
+            max-height: 0; opacity: 0; overflow: hidden; margin-top: 0; pointer-events: none;
+            transition: max-height .25s ease, opacity .2s ease, margin-top .25s ease;
+        }
+        .color-collapse.open { max-height: 60px; opacity: 1; margin-top: 12px; pointer-events: auto; }
+        .field-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+        .field-row + .field-row { margin-top: 12px; }
+        .field-row > div { display: flex; flex-direction: column; }
+
+        label { font-weight: 600; font-size: 12.5px; color: var(--text-2); display: block; margin-bottom: 6px; }
+        .check {
+            display: inline-flex; align-items: center; gap: 8px; margin: 0;
+            font-size: 13.5px; font-weight: 500; color: var(--text); cursor: pointer; user-select: none;
+        }
+        .check-list { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+        .check-list.col { flex-direction: column; gap: 10px; }
+        input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+
         .input-group { display: flex; align-items: center; gap: 8px; }
-        input[type="number"], input[type="text"] { width: 80px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: monospace; font-size: 14px; }
+        input[type="number"], input[type="text"] {
+            width: 88px; height: 38px; padding: 0 10px; box-sizing: border-box;
+            border: 1px solid var(--line-strong); border-radius: 8px; background: #fff;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; color: var(--text);
+            transition: border-color .15s, box-shadow .15s;
+        }
+        input[type="text"] { font-family: inherit; }
+        input[type="number"]:focus, input[type="text"]:focus { outline: none; border-color: var(--primary); box-shadow: var(--ring); }
+        input:disabled { background: #f1f5f9; color: var(--text-3); cursor: not-allowed; }
         input.full-width { width: 120px; }
-        input[type="color"] { width: 45px; height: 42px; padding: 2px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; }
-        input[type="file"] { border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #fff; width: 100%; box-sizing: border-box; }
-        label { font-weight: bold; font-size: 14px; color: #1e293b; display: block; margin-bottom: 8px; }
-        
+        input.sm { width: 68px; }
+        input[type="color"] {
+            width: 46px; height: 38px; padding: 3px; box-sizing: border-box;
+            border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; cursor: pointer;
+        }
+        input[type="file"] {
+            width: 100%; box-sizing: border-box; padding: 6px; font-family: inherit; font-size: 13px; color: var(--text-2);
+            border: 1px dashed var(--line-strong); border-radius: 10px; background: #fff; cursor: pointer;
+        }
+        input[type="file"]::file-selector-button {
+            margin-right: 10px; padding: 7px 14px; border: none; border-radius: 7px;
+            background: var(--primary-soft); color: var(--primary); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
+            transition: background .15s;
+        }
+        input[type="file"]::file-selector-button:hover { background: #dbeafe; }
+        input[type="range"] { flex: 1; cursor: pointer; accent-color: var(--primary); }
+        .mono-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; font-size: 13px; width: 48px; text-align: right; color: var(--text); }
+
+        /* ===== 버튼 ===== */
         .action-btn {
-            display: block; width: 100%; background-color: var(--primary); color: white; border: none;
-            padding: 16px; border-radius: 8px; font-size: 16px; font-weight: 700;
-            cursor: pointer; transition: all 0.2s; margin-top: auto;
+            display: block; width: 100%; background-color: var(--primary); color: #fff; border: none;
+            padding: 15px; border-radius: 11px; font-family: inherit; font-size: 15.5px; font-weight: 700;
+            cursor: pointer; transition: background .2s, transform .1s, box-shadow .2s; margin-top: auto;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, .28);
         }
+        .split-right .action-btn { margin-top: auto; }
         .action-btn:hover:not(:disabled) { background-color: var(--primary-hover); }
-        .action-btn:disabled { background-color: #94a3b8; cursor: not-allowed; opacity: 0.7; }
-        
-        .btn-row { display: flex; gap: 10px; width: 100%; }
+        .action-btn:active:not(:disabled) { transform: translateY(1px); }
+        .action-btn:disabled { background-color: #b6c0cf; box-shadow: none; cursor: not-allowed; }
+        .actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+        .actions > :first-child { margin-top: 4px; }
+
+        .btn-row { display: flex; gap: 8px; width: 100%; }
         .sub-btn {
-            flex: 1; background-color: #e2e8f0; color: #334155; border: none; padding: 10px;
-            border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;
+            flex: 1; background-color: #e9edf3; color: #334155; border: 1px solid transparent; padding: 10px 12px;
+            border-radius: 9px; font-family: inherit; font-weight: 600; cursor: pointer; font-size: 13px; transition: background .15s, border-color .15s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; line-height: 1.3;
         }
-        .sub-btn:hover { background-color: #cbd5e1; }
-        .sub-btn:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
-        .sub-btn.danger { background-color: #fee2e2; color: #b91c1c; }
-        .sub-btn.danger:hover { background-color: #fecaca; }
-        input[type="range"] { flex: 1; cursor: pointer; }
-        .file-count { font-size: 14px; font-weight: bold; color: var(--primary); margin-top: 8px; }
+        label.sub-btn { margin: 0; color: #334155; }
+        .sub-btn:hover { background-color: #dde3ec; }
+        .sub-btn:disabled { background-color: #f1f5f9; color: var(--text-3); cursor: not-allowed; border-color: transparent; }
+        .sub-btn.soft, label.sub-btn.soft { background-color: #fff; color: #1d4ed8; border-color: var(--primary-line); }
+        .sub-btn.soft:hover:not(:disabled) { background-color: var(--primary-soft); }
+        .sub-btn.soft:disabled { background: #f8fafc; color: var(--text-3); border-color: var(--line); }
+        .sub-btn.warm { background-color: var(--warm-soft); color: var(--warm); border-color: var(--warm-line); }
+        .sub-btn.warm:hover { background-color: #ffedd5; }
+        .sub-btn.danger { background-color: var(--danger-soft); color: #b91c1c; border-color: #fecaca; }
+        .sub-btn.danger:hover { background-color: #fee2e2; }
+        .sub-btn.lg { padding: 12px; font-size: 14px; }
+        .sub-btn.fit { flex: 0 0 auto; padding: 10px 16px; }
 
         .file-list-container {
-            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px;
-            max-height: 120px; overflow-y: auto; padding: 10px;
-            background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1;
+            display: flex; flex-wrap: wrap; gap: 6px; margin: 14px auto 0; max-width: 860px;
+            max-height: 128px; overflow-y: auto; padding: 10px;
+            background: var(--surface-2); border-radius: 10px; border: 1px solid var(--line);
             justify-content: center;
         }
         .file-item {
             display: flex; align-items: center; gap: 6px;
-            background: #fff; border: 1px solid #94a3b8; padding: 4px 8px;
-            border-radius: 4px; font-size: 13px; color: #334155;
-            cursor: grab;
+            background: #fff; border: 1px solid var(--line-strong); padding: 5px 6px 5px 10px;
+            border-radius: 999px; font-size: 12.5px; color: #334155; cursor: grab; box-shadow: var(--shadow-sm);
         }
         .file-item:active { cursor: grabbing; }
         .file-item-delete {
-            background: none; border: none; color: #ef4444; font-weight: bold;
-            cursor: pointer; padding: 0; font-size: 14px; line-height: 1; 
-            display: flex; align-items: center; justify-content: center; 
-            width: 16px; height: 16px; border-radius: 50%; transition: 0.2s;
+            background: none; border: none; color: var(--text-3); font-weight: bold;
+            cursor: pointer; padding: 0; font-size: 11px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; border-radius: 50%; transition: .15s;
         }
-        .file-item-delete:hover { background: #fee2e2; }
+        .file-item-delete:hover { background: #fee2e2; color: var(--danger); }
 
-        .divider { border: 0; border-top: 2px dashed #cbd5e1; margin: 30px 0; width: 100%; }
-
-        .collage-preview-wrapper { margin-top: 20px; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; }
-        .collage-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-        .collage-item { 
-            background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; 
-            display: flex; flex-direction: column; align-items: center; gap: 8px; 
-            cursor: grab; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s;
+        /* ===== 콜라주 ===== */
+        .collage-preview-wrapper { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line); }
+        .sub-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+        .sub-head h4 { margin: 0 0 4px; font-size: 15.5px; font-weight: 800; color: var(--text); }
+        .sub-head h4 .num { color: var(--primary); margin-right: 4px; }
+        .collage-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin-bottom: 28px; }
+        .collage-item {
+            background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            cursor: grab; box-shadow: var(--shadow-sm); transition: box-shadow .2s, border-color .2s;
         }
+        .collage-item:hover { border-color: var(--primary-line); box-shadow: 0 6px 16px rgba(15,23,42,.08); }
         .collage-item.blinded { background: #f1f5f9; }
         .collage-item.blurred { background: #eef2ff; }
         .collage-item:active { cursor: grabbing; }
-        .collage-item img { max-width: 100%; border-radius: 4px; border: 1px solid #eee; pointer-events: none; transition: filter 0.2s; }
-        .collage-item input { width: 90%; text-align: center; font-size: 13px; font-weight: bold; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: var(--primary); }
+        .collage-item img { max-width: 100%; border-radius: 8px; border: 1px solid #eef1f5; pointer-events: none; transition: filter .2s; background: #f8fafc; }
+        .collage-item input { width: 100%; height: 34px; text-align: center; font-size: 13px; font-weight: 700; padding: 0 6px; color: var(--primary); }
         .item-controls { display: flex; gap: 4px; width: 100%; }
-        .item-controls button { flex: 1; padding: 6px 0; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--primary); font-size: 13px; }
-        .item-controls button:hover { background: #e2e8f0; }
-        .item-controls button.toggle-btn.on { background: #1e293b; color: #fff; }
+        .item-controls button { flex: 1; padding: 6px 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; font-weight: bold; color: var(--text-2); font-size: 12.5px; transition: .15s; }
+        .item-controls button:hover { background: #e9edf3; color: var(--text); }
+        .item-controls button.toggle-btn.on { background: #1e293b; border-color: #1e293b; color: #fff; }
 
-        /* 최종 미리보기 캔버스 + 호버 시 나타나는 스탠딩 영역 너비 조절 바 */
+        .preview-stage {
+            text-align: center; margin-bottom: 18px; overflow-x: auto; padding: 14px;
+            background-color: #eef1f6; background-image: radial-gradient(#d5dbe5 1px, transparent 1px); background-size: 16px 16px;
+            border: 1px solid var(--line); border-radius: 12px;
+        }
+        #canvasWheelHint { text-align: center; font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
         .canvas-wrap { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
+        #finalCollageCanvas { border-radius: 6px; cursor: grab; }
+        #finalCollageCanvas:active { cursor: grabbing; }
         .side-width-bar {
             display: none; position: absolute; left: 10px; bottom: 10px;
-            width: min(340px, calc(100% - 20px)); box-sizing: border-box;
+            width: min(360px, calc(100% - 20px)); box-sizing: border-box;
             align-items: center; gap: 8px; padding: 8px 12px;
-            background: rgba(255,255,255,0.94); border: 1px solid #cbd5e1; border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 12px; color: #334155;
+            background: rgba(255,255,255,0.95); border: 1px solid var(--line-strong); border-radius: 10px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15); font-size: 12px; color: #334155;
             opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 5;
         }
         .canvas-wrap.has-side .side-width-bar { display: flex; }
         .canvas-wrap.has-side:hover .side-width-bar,
         .canvas-wrap.has-side .side-width-bar:focus-within { opacity: 1; pointer-events: auto; }
+        .canvas-wrap.has-side .side-width-bar { flex-direction: column; align-items: stretch; gap: 6px; }
+        .side-width-bar .bar-row { display: flex; align-items: center; gap: 8px; }
         .side-width-bar span { white-space: nowrap; font-weight: 600; }
-        .side-width-bar #sideWidthValue { font-family: monospace; min-width: 52px; text-align: right; }
+        .side-width-bar #sideWidthValue, .side-width-bar #sideHeightValue { font-family: ui-monospace, monospace; min-width: 52px; text-align: right; }
+        .final-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .final-actions .full { grid-column: 1 / -1; }
 
         /* ===== Cropper.js 클린 모드 ===== */
         .cropper-view-box { outline: none !important; box-shadow: none !important; border: none !important; transition: background-color 0.2s; }
         .cropper-modal { background: transparent !important; opacity: 0 !important; }
-        .cropper-canvas { opacity: 0 !important; } 
+        .cropper-canvas { opacity: 0 !important; }
         .cropper-dashed, .cropper-point, .cropper-line, .cropper-center { display: none !important; }
         .cropper-face { background: transparent !important; opacity: 1 !important; }
         .cropper-crop-box { background: transparent !important; }
         .cropper-bg { display: none !important; }
 
-        /* 팝업 모달 */
+        /* ===== 팝업 모달 ===== */
         .modal-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-            z-index: 9999; align-items: center; justify-content: center;
+            display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .45);
+            backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+            z-index: 9999; align-items: center; justify-content: center; padding: 20px;
         }
-        .modal-overlay.open { display: flex; }
+        .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
         .modal-box {
-            background: #fff; border-radius: 14px; padding: 30px 35px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2); min-width: 320px;
-            display: flex; flex-direction: column; gap: 18px;
+            background: #fff; border-radius: 18px; padding: 26px 28px;
+            box-shadow: 0 20px 50px rgba(15,23,42,.25); width: 100%; max-width: 380px;
+            display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;
         }
-        .modal-box h3 { margin: 0; color: #1e293b; font-size: 17px; }
-        .modal-box input[type="text"] { width: 100%; box-sizing: border-box; font-size: 15px; padding: 12px; }
-        .modal-btns { display: flex; gap: 10px; }
-        .modal-btns button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 15px; }
-        .modal-btns .btn-confirm { background: var(--primary); color: #fff; }
-        .modal-btns .btn-cancel { background: #e2e8f0; color: #334155; }
+        .modal-box h3 { margin: 0; color: var(--text); font-size: 17px; font-weight: 800; }
+        .modal-box input[type="text"] { width: 100%; height: 44px; font-size: 15px; padding: 0 12px; }
+        .modal-btns { display: flex; gap: 8px; }
+        .modal-box.crop-modal { max-width: 460px; }
+        .modal-btns .btn-soft { background: var(--primary-soft); color: #1d4ed8; border: 1px solid var(--primary-line); }
+        .modal-btns .btn-soft:hover { background: #dbeafe; }
+        .crop-modal .modal-btns + .modal-btns { margin-top: -8px; }
+        .crop-modal .modal-btns .btn-cancel { font-size: 13.5px; padding: 10px; }
+        .collage-item.custom-crop .collage-thumb::before {
+            content: '개별 크롭'; position: absolute; top: 4px; left: 4px; z-index: 1;
+            padding: 1px 6px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 10.5px; font-weight: 700;
+        }
+        .item-crop-stage { display: flex; justify-content: center; }
+        .collage-thumb { position: relative; width: 100%; display: flex; justify-content: center; cursor: pointer; }
+        .collage-thumb::after {
+            content: '✂️ 눌러서 크롭'; position: absolute; inset: 0; display: grid; place-items: center;
+            background: rgba(15, 23, 42, .45); color: #fff; font-size: 12px; font-weight: 700; border-radius: 8px;
+            opacity: 0; transition: opacity .15s; pointer-events: none;
+        }
+        .collage-thumb:hover::after { opacity: 1; }
 
-        #finalCollageCanvas { cursor: grab; }
-        #finalCollageCanvas:active { cursor: grabbing; }
+        .modal-btns button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-family: inherit; font-weight: 700; cursor: pointer; font-size: 14.5px; transition: background .15s; }
+        .modal-btns .btn-confirm { background: var(--primary); color: #fff; }
+        .modal-btns .btn-confirm:hover { background: var(--primary-hover); }
+        .modal-btns .btn-cancel { background: #e9edf3; color: #334155; }
+        .modal-btns .btn-cancel:hover { background: #dde3ec; }
+
+        /* ===== 반응형 ===== */
+        @media (max-width: 960px) {
+            .split-layout { flex-direction: column; }
+            .split-left-wrapper { flex: none; width: 100%; position: static; overflow-x: auto; }
+            .split-left-col { flex: none; width: 100%; position: static; }
+            .split-right.fit-content { align-self: stretch; }
+            .split-right-col { width: 100%; align-self: stretch; }
+            .split-layout.center-y > * { align-self: stretch; margin-top: 0 !important; }
+        }
+        @media (max-width: 640px) {
+            body { padding: 0 12px 40px; }
+            .app-header { margin: 0 -12px 16px; padding: 12px; }
+            .tabs { width: 100%; }
+            .tab-btn { flex: 1; padding: 9px 8px; font-size: 13.5px; }
+            .section, .dropzone { padding: 18px; }
+            .final-actions { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -192,308 +501,393 @@
     </div>
 </div>
 
-<div class="container">
-    <h2>✂️ 쏘랑 커팅기</h2>
-    
-    <div class="tabs">
-        <button class="tab-btn active" data-target="tab-headshot">1. 두상</button>
-        <button class="tab-btn" data-target="tab-portrait">2. 반신 스탠딩</button>
-        <button class="tab-btn" data-target="tab-cutin">3. 컷인</button>
-    </div>
-
-    <div id="tab-headshot" class="tab-content active">
-        <div class="split-layout">
-            <div class="split-left-wrapper">
-                <div class="canvas-box-wrap" id="hsBoxWrap">
-                    <img id="imgHeadshot" src="">
-                    <div id="hsOverlay" class="overlay-guide"></div>
-                </div>
-            </div>
-            <div class="split-right">
-                <div>
-                    <label>1. 이미지 업로드</label>
-                    <input type="file" id="fileHeadshot" accept="image/*">
-                </div>
-                <div>
-                    <label>2. 배경 설정</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="hsTransparent" checked>
-                        <label for="hsTransparent" style="margin:0; cursor:pointer; font-weight:normal;">투명</label>
-                    </div>
-                    <div class="input-group" id="hsColorGroup" style="opacity: 0.5; pointer-events: none;">
-                        <input type="color" id="hsColorPicker" value="#ffffff">
-                        <input type="text" id="hsHexInput" value="#ffffff" maxlength="7">
-                    </div>
-                </div>
-                <div>
-                    <label>3. 가이드 및 마우스 감도</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="hsGuideCircle"><label for="hsGuideCircle" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">원형 가이드</label>
-                        <input type="checkbox" id="hsGuideGrid" style="margin-left:10px;"><label for="hsGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드</label>
-                    </div>
-                    <div class="input-group">
-                        <input type="checkbox" id="hsFineZoom"><label for="hsFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 높이기</label>
-                    </div>
-                </div>
-                <button id="btnCropHeadshot" class="action-btn" disabled>다운로드</button>
-            </div>
+<div class="modal-overlay" id="itemCropModal">
+    <div class="modal-box crop-modal">
+        <h3>✂️ 표정 크롭</h3>
+        <p class="hint" style="margin-top: -8px;">드래그로 위치, 마우스 휠로 배율을 맞춘 뒤 적용 방법을 골라주세요.</p>
+        <div class="item-crop-stage">
+            <div class="canvas-box-wrap" id="itemCropBox"><img id="itemCropImg" src="" alt=""></div>
         </div>
-    </div>
-
-    <div id="tab-portrait" class="tab-content">
-        <div style="background: #fff; padding: 20px; border-radius: 10px; border: 2px dashed #cbd5e1; margin-bottom: 25px; text-align: center;">
-            <label style="font-size: 16px; color: var(--primary);">📥 파일 불러오기 및 추가</label>
-            <p style="font-size:13px; color:#64748b; margin: 5px 0;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다.</p>
-            <input type="file" id="filePortrait" accept="image/*" multiple style="margin-top: 10px; border: none; background: #f8fafc; padding: 10px; width: 100%; cursor: pointer;">
-            <div id="portraitFileCount" class="file-count" style="margin-top: 15px;">선택된 파일: 0개</div>
-            <div id="portraitFileList" class="file-list-container" style="display: none;"></div>
-            <button id="btnClearPortraitFiles" class="sub-btn danger" style="margin-top: 10px; display: none;">🗑️ 첨부 파일 전체 초기화</button>
+        <div class="modal-btns">
+            <button class="btn-soft" id="btnItemCropOnly" title="이 표정만 따로 크롭해요. 다른 표정은 그대로예요.">이 표정만 적용</button>
+            <button class="btn-confirm" id="btnItemCropApply" title="모든 표정이 같은 위치·배율로 잘려요.">모든 표정에 적용</button>
         </div>
-
-        <h3 style="color: var(--primary); margin-bottom: 10px;">2-1. 코코포리아 스탠딩</h3>
-        <p class="help-text" style="margin-bottom: 15px;">여러 장의 파일을 동일한 좌표와 배율로 잘라 <strong style="color:var(--primary);">원본 파일명 그대로</strong> 개별 투명 PNG로 추출합니다.</p>
-
-        <div style="background:#eff6ff; border:1px dashed #bfdbfe; border-radius:10px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-            <span style="font-size:14px; color:#1d4ed8; font-weight:700; white-space:nowrap;">💾 저장해둔 크롭 설정이 있나요?</span>
-            <span style="font-size:12.5px; color:#64748b; flex:1; min-width:180px;">파일을 첨부하지 않아도 먼저 불러올 수 있고, 이후 파일을 첨부하면 자동으로 같은 위치·배율·회전이 적용됩니다.</span>
-            <label class="sub-btn" style="flex: 0 0 auto; padding: 10px 16px; cursor: pointer; margin: 0; background-color: #ffffff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 14px; text-align: center;">
-                📂 크롭 설정 불러오기
-                <input type="file" id="importPtCropJsonTop" accept=".json" style="display: none;">
-            </label>
-        </div>
-
-        <div class="split-layout">
-            <div class="split-left-wrapper">
-                <div class="canvas-box-wrap" id="ptBoxWrap">
-                    <img id="imgPortrait" src="">
-                    <div id="ptOverlay" class="overlay-guide"></div>
-                </div>
-            </div>
-            <div class="split-right">
-                <div class="input-group">
-                    <div><label>캔버스 가로 (px)</label><input type="number" id="portraitW" value="460"></div>
-                    <div><label>캔버스 세로 (px)</label><input type="number" id="portraitH" value="800"></div>
-                    <div style="margin-left: 5px; margin-top: 25px;">
-                        <input type="checkbox" id="ptSquareToggle">
-                        <label for="ptSquareToggle" style="display:inline; cursor:pointer; font-weight:normal; font-size:13px;">1:1 고정</label>
-                    </div>
-                </div>
-                <div>
-                    <label>가이드 및 마우스 감도</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="ptGuideGrid"><label for="ptGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드 (코코포리아 정사각형 1칸)</label>
-                    </div>
-                    <div class="input-group">
-                        <input type="checkbox" id="ptFineZoom"><label for="ptFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 높이기</label>
-                    </div>
-                </div>
-                <div>
-                    <label>회전 각도 조절</label>
-                    <div class="input-group" style="width: 100%;">
-                        <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
-                        <span id="ptRotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
-                    </div>
-                    <div class="btn-row" style="margin-top: 10px;">
-                        <button class="sub-btn" onclick="rotateManual('pt', -90)">↺ -90°</button>
-                        <button class="sub-btn" onclick="rotateManual('pt', 90)">↻ +90°</button>
-                        <button class="sub-btn" onclick="resetManual('pt')">🔄 초기화</button>
-                    </div>
-                </div>
-                <button id="btnCropPortrait" class="action-btn" disabled>전체 파일 개별 추출 (ZIP)</button>
-                <div class="btn-row" style="margin-top: 10px;">
-                    <button id="btnPtCropBackup" class="sub-btn" style="background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;" disabled>💾 크롭 설정 백업</button>
-                    <label class="sub-btn" style="cursor: pointer; margin: 0; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; text-align: center;">
-                        📂 크롭 설정 불러오기
-                        <input type="file" id="importPtCropJson" accept=".json" style="display: none;">
-                    </label>
-                </div>
-                <p style="font-size:12px; color:#94a3b8; margin-top:6px; margin-bottom:0;">표정을 나중에 추가로 그려서 넣을 때, 이 백업을 불러오면 이전과 동일한 위치·배율·회전으로 맞출 수 있어요. 파일을 첨부하기 전에 불러와도 적용됩니다.</p>
-            </div>
-        </div>
-
-        <hr class="divider">
-
-        <h3 style="color: var(--primary); margin-bottom: 6px;">2-2. 포트레이트 모아보기 (콜라주)</h3>
-        <p class="help-text" style="margin-bottom: 2px;">위와 독립적으로 새롭게 크롭하여 '_' 뒤에 오는 <strong style="color:var(--primary);">표정 이름이 자동으로 입력된</strong> 모음집을 만듭니다.</p>
-        <p style="font-size: 13px; color: #94a3b8; margin-top: 0; margin-bottom: 15px;">하단의 백업/불러오기 버튼으로 이름과 배치 상태를 그대로 저장할 수 있습니다.</p>
-
-        <div style="background:#eff6ff; border:1px dashed #bfdbfe; border-radius:10px; padding:14px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-            <span style="font-size:14px; color:#1d4ed8; font-weight:700; white-space:nowrap;">💾 이전에 저장한 백업이 있나요?</span>
-            <span style="font-size:12.5px; color:#64748b; flex:1; min-width:180px;">파일을 첨부하지 않아도 백업(JSON)만으로 바로 불러올 수 있습니다.</span>
-            <label class="sub-btn" style="flex: 0 0 auto; padding: 10px 16px; cursor: pointer; margin: 0; background-color: #ffffff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 14px; text-align: center;">
-                📂 설정 불러오기
-                <input type="file" id="importCollageJsonTop" accept=".json" style="display: none;">
-            </label>
-        </div>
-        
-        <div class="split-layout">
-            <div class="split-left-wrapper">
-                <div class="canvas-box-wrap" id="colBoxWrap">
-                    <img id="imgCollage" src="">
-                    <div id="colOverlay" class="overlay-guide"></div>
-                </div>
-            </div>
-            <div class="split-right">
-                <div class="input-group" style="align-items: flex-end;">
-                    <div><label>자르기 가로(px)</label><input type="number" id="colW" value="460"></div>
-                    <div><label>자르기 세로(px)</label><input type="number" id="colH" value="460" disabled></div>
-                    <div style="margin-bottom: 10px; margin-left: 5px;">
-                        <input type="checkbox" id="colSquareToggle" checked>
-                        <label for="colSquareToggle" style="display:inline; cursor:pointer; font-size:13px; font-weight:normal;">1:1 고정</label>
-                    </div>
-                </div>
-                <div>
-                    <label>마우스 감도 및 회전</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="colFineZoom"><label for="colFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 높이기</label>
-                    </div>
-                    <div class="input-group" style="width: 100%; margin-top: 10px;">
-                        <input type="range" id="colRotateSlider" min="-180" max="180" value="0">
-                        <span id="colRotateValue" style="font-family: monospace; font-weight: bold; width: 45px; text-align: right;">0°</span>
-                    </div>
-                    <div class="btn-row" style="margin-top: 10px;">
-                        <button class="sub-btn" onclick="rotateManual('col', -90)">↺ -90°</button>
-                        <button class="sub-btn" onclick="rotateManual('col', 90)">↻ +90°</button>
-                        <button class="sub-btn" onclick="resetManual('col')">🔄 초기화</button>
-                    </div>
-                </div>
-                <div>
-                    <label>레이아웃 & 배경 설정</label>
-                    <div class="input-group" style="margin-bottom: 12px;">
-                        <div><label style="font-size: 13px; margin-bottom:5px;">배치 열 수</label><input type="number" id="colCols" value="3" style="width: 60px;"></div>
-                        <div><label style="font-size: 13px; margin-bottom:5px;">글자 색상</label><input type="color" id="colTextColor" value="#2563eb" style="width: 60px;"></div>
-                        <div><label style="font-size: 13px; margin-bottom:5px;">배경 색상</label><input type="color" id="colBgColor" value="#f1f5f9" style="width: 60px;"></div>
-                        <div><label style="font-size: 13px; margin-bottom:5px;">여백(px)</label><input type="number" id="colMargin" value="15" style="width: 60px;"></div>
-                    </div>
-                    <div style="display:flex; gap:15px; flex-wrap: wrap; margin-bottom: 12px;">
-                        <div style="flex:1;">
-                            <label style="font-size:13px; margin-bottom: 4px;">시나리오명</label>
-                            <div class="input-group">
-                                <input type="text" id="colScenarioName" placeholder="시나리오명 입력" style="flex:1; width:100%;">
-                                <input type="number" id="colScenarioSize" value="60" title="글자 크기">
-                            </div>
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:13px; margin-bottom: 4px;">캐릭터 이름</label>
-                            <div class="input-group">
-                                <input type="text" id="colCharName" placeholder="이름 입력" style="flex:1; width:100%;">
-                                <input type="number" id="colCharSize" value="100" title="글자 크기">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group" style="margin-bottom: 12px;">
-                        <input type="checkbox" id="colVerticalText"><label for="colVerticalText" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">시나리오명 · 캐릭터 이름 세로쓰기</label>
-                    </div>
-                    <label style="font-size: 13px; margin-bottom:5px;">좌측에 삽입할 스탠딩(선택)</label>
-                    <input type="file" id="colSideImg" accept="image/*">
-                    <p style="font-size:12px; color:#94a3b8; margin:8px 0 0;">스탠딩이 들어가는 영역의 너비는 아래 최종 미리보기에 마우스를 올리면 나타나는 슬라이더로 조절할 수 있어요.</p>
-                </div>
-                <div>
-                    <label style="font-size: 13px; margin-bottom:5px;">사용자 폰트 업로드</label>
-                    <input type="file" id="colFontFile" accept=".ttf,.otf,.woff,.woff2">
-                    <div id="colFontStatus" style="font-size:12px; color:#64748b; margin-top:6px;"></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="collage-preview-wrapper" id="collagePreviewArea" style="display: none;">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 16px;">1. 포트레이트 이름 및 순서 수정</h3>
-            <p class="help-text" style="margin-bottom: 15px;">드래그나 화살표 버튼으로 순서를 변경하고 파일명 텍스트를 수정할 수 있습니다. 🙈 버튼은 실루엣, 🌫️ 버튼은 블러 처리를 각각 켜고 끌 수 있습니다. 변경 사항은 자동으로 최종 미리보기에 반영됩니다.</p>
-            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
-                <button id="btnToggleAllNames" class="sub-btn" style="flex: 0 0 auto; padding: 8px 16px; display: none;">🔤 표정 이름 전체 끄기</button>
-            </div>
-            <div class="collage-grid" id="collageGrid" style="margin-bottom: 25px;"></div>
-            
-            <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 16px;">2. 최종 이미지 미리보기 및 설정</h3>
-            <p style="font-size:13px; color:#64748b; margin: 0 0 12px;">전신 이미지는 미리보기 위에서 <strong>마우스 휠로 배율</strong>을 조절하세요. 아래 설정은 값을 바꾸면 자동으로 반영됩니다.</p>
-
-            <div id="canvasWheelHint" style="text-align:center; font-size:12px; color:#94a3b8; margin-bottom:6px;">
-                💡 전신 이미지: 마우스 휠로 배율 조절 / 드래그로 위치 이동 / 미리보기에 마우스를 올리면 스탠딩 영역 너비 조절 바가 나타납니다
-            </div>
-            <div style="text-align: center; margin-bottom: 20px; overflow-x: auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
-                <div class="canvas-wrap" id="canvasWrap">
-                    <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
-                    <div class="side-width-bar" id="sideWidthBar">
-                        <span>스탠딩 영역 너비</span>
-                        <input type="range" id="sideWidthSlider" min="50" max="2000" step="1" value="300">
-                        <span id="sideWidthValue">300px</span>
-                    </div>
-                </div>
-            </div>
-
-            <button id="btnDownloadCollage" class="action-btn">포트레이트 모음집 다운로드</button>
-            
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button id="btnCollageBackup" class="sub-btn" style="flex: 1; padding: 12px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 15px;">💾 설정 백업 (JSON)</button>
-                <label class="sub-btn" style="flex: 1; padding: 12px; cursor: pointer; margin: 0; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 15px; text-align: center;">
-                    📂 설정 불러오기
-                    <input type="file" id="importCollageJson" accept=".json" style="display: none;">
-                </label>
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button id="btnDownloadCollagePieces" class="sub-btn" style="flex: 1; padding: 12px; background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; font-size: 15px;">파일명 반영 원본 다운로드</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="tab-cutin" class="tab-content">
-        <div style="background: #fff; padding: 20px; border-radius: 10px; border: 2px dashed #cbd5e1; margin-bottom: 25px; text-align: center;">
-            <label style="font-size: 16px; color: var(--primary);">📥 파일 모두 불러오기 및 추가</label>
-            <p style="font-size:13px; color:#64748b; margin: 5px 0;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다.</p>
-            <input type="file" id="fileCutin" accept="image/*" multiple style="margin-top: 10px; border: none; background: #f8fafc; padding: 10px; width: 100%; cursor: pointer;">
-            <div id="cutinFileCount" class="file-count" style="margin-top: 15px;">선택된 파일: 0개</div>
-            <div id="cutinFileList" class="file-list-container" style="display: none;"></div>
-            <button id="btnClearCutinFiles" class="sub-btn danger" style="margin-top: 10px; display: none;">🗑️ 첨부 파일 전체 초기화</button>
-        </div>
-
-        <h3 style="color: var(--primary); margin-bottom: 10px;">3-1. 컷인 다중 추출</h3>
-        <p class="help-text" style="margin-bottom: 15px;">여러 장의 파일을 동일한 좌표와 배율로 잘라 <strong style="color:var(--primary);">'원본 파일명_컷인'이라는 파일명으로</strong> 개별 추출합니다.</p>
-        <div class="split-layout">
-            <div class="split-left-wrapper">
-                <div class="canvas-box-wrap" id="ciBoxWrap">
-                    <img id="imgCutin" src="">
-                    <div id="ciOverlay" class="overlay-guide"></div>
-                </div>
-            </div>
-            <div class="split-right">
-                <div class="input-group">
-                    <div><label>캔버스 가로 (px)</label><input type="number" id="cutinW" value="1200"></div>
-                    <div><label>캔버스 세로 (px)</label><input type="number" id="cutinH" value="400"></div>
-                </div>
-                <div>
-                    <label>배경 설정</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="ciTransparent" checked>
-                        <label for="ciTransparent" style="margin:0; cursor:pointer; font-weight:normal;">투명</label>
-                    </div>
-                    <div class="input-group" id="ciColorGroup" style="opacity: 0.5; pointer-events: none;">
-                        <input type="color" id="ciColorPicker" value="#ffffff">
-                        <input type="text" id="ciHexInput" value="#ffffff" maxlength="7">
-                    </div>
-                </div>
-                <div>
-                    <label>가이드 및 마우스 감도</label>
-                    <div class="input-group" style="margin-bottom: 8px;">
-                        <input type="checkbox" id="ciGuideGrid"><label for="ciGuideGrid" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">격자 가이드 (코코포리아 1칸 비율)</label>
-                    </div>
-                    <div class="input-group">
-                        <input type="checkbox" id="ciFineZoom"><label for="ciFineZoom" style="margin:0; cursor:pointer; font-weight:normal; font-size:13.5px;">마우스 휠 감도 높이기</label>
-                    </div>
-                </div>
-                <button id="btnDownloadCutinEach" class="action-btn" disabled>📥 한 장씩 다운로드</button>
-                <button id="btnCropCutin" class="sub-btn" style="padding: 12px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 14px;" disabled>📦 압축 파일로 다운로드 (ZIP)</button>
-                <div class="btn-row" style="margin-top: 10px;">
-                    <button id="btnCiCropBackup" class="sub-btn" style="background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;" disabled>💾 크롭 설정 백업</button>
-                    <label class="sub-btn" style="cursor: pointer; margin: 0; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; text-align: center;">
-                        📂 크롭 설정 불러오기
-                        <input type="file" id="importCiCropJson" accept=".json" style="display: none;">
-                    </label>
-                </div>
-                <p style="font-size:12px; color:#94a3b8; margin-top:6px; margin-bottom:0;">컷인을 나중에 추가로 그려서 넣을 때, 이 백업을 불러오면 이전과 동일한 위치·배율로 맞출 수 있어요. 파일을 첨부하기 전에 불러와도 적용됩니다.</p>
-            </div>
+        <div class="modal-btns">
+            <button class="btn-cancel" id="btnItemCropReset" title="개별 크롭을 지우고 다른 표정과 같은 공통 크롭으로 되돌려요">공통 크롭으로 되돌리기</button>
+            <button class="btn-cancel" id="btnItemCropCancel">취소</button>
         </div>
     </div>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><b id="toastTitle"></b><span id="toastBody"></span></div>
+
+<header class="app-header">
+    <div class="app-header-inner">
+        <div class="brand">
+            <div class="brand-mark">✂️</div>
+            <div>
+                <h1>쏘랑 커팅기</h1>
+                <p>두상 · 스탠딩 · 컷인 이미지 자르기</p>
+            </div>
+        </div>
+        <nav class="tabs">
+            <button class="tab-btn" data-target="tab-headshot">1. 두상</button>
+            <button class="tab-btn active" data-target="tab-portrait">2. 스탠딩</button>
+            <button class="tab-btn" data-target="tab-cutin">3. 컷인</button>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+
+    <!-- ========== 탭 1: 두상 ========== -->
+    <div id="tab-headshot" class="tab-content">
+        <section class="section">
+            <div class="section-head">
+                <span class="step-badge">1</span>
+                <div>
+                    <h3>두상 자르기</h3>
+                    <p class="help-text">이미지를 올리고 드래그·휠로 위치와 배율을 맞춘 뒤 다운로드하세요.</p>
+                </div>
+            </div>
+            <div class="split-layout center-y">
+                <div class="split-left-wrapper">
+                    <div class="canvas-box-wrap" id="hsBoxWrap">
+                        <img id="imgHeadshot" src="">
+                        <div id="hsOverlay" class="overlay-guide"></div>
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="field">
+                        <span class="field-title">이미지 업로드</span>
+                        <input type="file" id="fileHeadshot" accept="image/*">
+                    </div>
+                    <div class="field">
+                        <div class="inline-field">
+                            <span class="field-title" style="display: inline-flex; align-items: center; gap: 6px;">배경 설정<span class="caret" aria-hidden="true">▼</span></span>
+                            <label class="check has-tip" data-tip="해제 시, 배경색 설정 가능"><input type="checkbox" id="hsTransparent" checked> 투명 배경</label>
+                        </div>
+                        <div class="input-group color-collapse" id="hsColorGroup">
+                            <input type="color" id="hsColorPicker" value="#ffffff">
+                            <input type="text" id="hsHexInput" value="#ffffff" maxlength="7" class="full-width">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-title">가이드 및 확대</span>
+                        <div class="check-list">
+                            <label class="check"><input type="checkbox" id="hsGuideCircle"> 원형 가이드</label>
+                            <label class="check"><input type="checkbox" id="hsGuideGrid"> 격자 가이드</label>
+                            <label class="check has-tip" data-tip="마우스 스크롤의 감도가 올라갑니다."><input type="checkbox" id="hsFineZoom"> 느리게 확대</label>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button id="btnCropHeadshot" class="action-btn" style="display: none;" disabled>다운로드</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ========== 탭 2: 스탠딩 ========== -->
+    <div id="tab-portrait" class="tab-content active">
+        <div class="dropzone">
+            <div class="dropzone-icon">📥</div>
+            <span class="dropzone-title">파일 불러오기 및 추가</span>
+            <p id="portraitDzHint" style="display: none;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다. 첫 번째 파일이 미리보기에 사용돼요.</p>
+            <input type="file" id="filePortrait" accept="image/*" multiple>
+            <div id="portraitFileCount" class="file-count">선택된 파일: 0개</div>
+            <div id="portraitFileList" class="file-list-container" style="display: none;"></div>
+            <button id="btnClearPortraitFiles" class="sub-btn danger" style="display: none;">🗑️ 첨부 파일 전체 초기화</button>
+        </div>
+
+        <!-- 2-1 -->
+        <section class="section">
+            <div class="section-head">
+                <span class="step-badge">2-1</span>
+                <div>
+                    <h3>코코포리아 스탠딩</h3>
+                    <p class="help-text">여러 장의 파일을 동일한 좌표와 배율로 잘라 <strong>원본 파일명 그대로</strong> 개별 투명 PNG로 추출합니다.</p>
+                </div>
+                <label class="sub-btn soft fit head-action" title="저장해둔 설정(JSON)을 불러와요">
+                    📂 설정 불러오기
+                    <input type="file" id="importPtCropJson" accept=".json" style="display: none;">
+                </label>
+            </div>
+
+            <div class="split-layout center-y">
+                <div class="split-left-wrapper">
+                    <div class="canvas-box-wrap" id="ptBoxWrap">
+                        <img id="imgPortrait" src="">
+                        <div id="ptOverlay" class="overlay-guide"></div>
+                    </div>
+                </div>
+                <div class="split-right">
+                    <div class="field">
+                        <span class="field-title">캔버스 크기</span>
+                        <div class="field-row">
+                            <div><label for="portraitW">가로 (px)</label><input type="number" id="portraitW" value="460"></div>
+                            <div><label for="portraitH">세로 (px)</label><input type="number" id="portraitH" value="800"></div>
+                            <label class="check" style="height: 38px;"><input type="checkbox" id="ptSquareToggle"> 1:1 고정</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-title">확대 및 회전</span>
+                        <label class="check has-tip" data-tip="마우스 스크롤의 감도가 올라갑니다." style="margin-bottom: 12px;"><input type="checkbox" id="ptFineZoom"> 느리게 확대</label>
+                        <div class="rotate-row subtle">
+                            <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
+                            <span id="ptRotateValue" class="mono-value">0°</span>
+                            <button class="sub-btn" onclick="rotateManual('pt', -90)" title="-90° 회전">↺ -90°</button>
+                            <button class="sub-btn" onclick="rotateManual('pt', 90)" title="+90° 회전">↻ +90°</button>
+                            <button class="sub-btn" onclick="resetManual('pt')" title="회전·위치 초기화">🔄 초기화</button>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button id="btnCropPortrait" class="action-btn" style="display: none;" disabled>전체 파일 개별 추출 (ZIP)</button>
+                        <button id="btnPtCropBackup" class="sub-btn soft lg" style="display: none;" disabled>💾 설정 백업</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2-2 -->
+        <section class="section">
+            <div class="section-head">
+                <span class="step-badge">2-2</span>
+                <div>
+                    <h3>포트레이트 모아보기</h3>
+                    <p class="help-text">위와 독립적으로 새롭게 크롭하여 <strong>표정 이름이 자동으로 입력된</strong> 모음집을 만듭니다.</p>
+                </div>
+                <label class="sub-btn soft fit head-action" title="저장해둔 설정(JSON)을 불러와요">
+                    📂 설정 불러오기
+                    <input type="file" id="importCollageJsonTop" accept=".json" style="display: none;">
+                </label>
+            </div>
+
+            <div class="split-layout center-y">
+                <div class="split-left-col">
+                    <div class="split-left-wrapper">
+                        <div class="canvas-box-wrap" id="colBoxWrap">
+                            <img id="imgCollage" src="">
+                            <div id="colOverlay" class="overlay-guide"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="split-right-col">
+                <div class="split-right fit-content">
+                    <details class="field collapsible">
+                        <summary class="field-title">포트레이트 칸 크기<span class="caret" aria-hidden="true">▼</span></summary>
+                        <div class="field-row" style="margin-top: 12px;">
+                            <div><label for="colW">가로 (px)</label><input type="number" id="colW" value="460"></div>
+                            <div><label for="colH">세로 (px)</label><input type="number" id="colH" value="460" disabled></div>
+                            <label class="check" style="height: 38px;"><input type="checkbox" id="colSquareToggle" checked> 1:1 고정</label>
+                        </div>
+                    </details>
+                    <div class="field">
+                        <span class="field-title">확대 및 회전</span>
+                        <label class="check has-tip" data-tip="마우스 스크롤의 감도가 올라갑니다." style="margin-bottom: 12px;"><input type="checkbox" id="colFineZoom"> 느리게 확대</label>
+                        <div class="rotate-row subtle">
+                            <input type="range" id="colRotateSlider" min="-180" max="180" value="0">
+                            <span id="colRotateValue" class="mono-value">0°</span>
+                            <button class="sub-btn" onclick="rotateManual('col', -90)" title="-90° 회전">↺ -90°</button>
+                            <button class="sub-btn" onclick="rotateManual('col', 90)" title="+90° 회전">↻ +90°</button>
+                            <button class="sub-btn" onclick="resetManual('col')" title="회전·위치 초기화">🔄 초기화</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-title">색상 & 레이아웃</span>
+                        <div class="field-row">
+                            <div><label for="colTextColor">글자 색</label><input type="color" id="colTextColor" value="#2563eb"></div>
+                            <div><label for="colBgColor">배경 색</label><input type="color" id="colBgColor" value="#f1f5f9"></div>
+                            <div><label for="colCols">열 수</label><input type="number" id="colCols" value="3" class="sm"></div>
+                            <div><label for="colMargin">여백 (px)</label><input type="number" id="colMargin" value="15" class="sm"></div>
+                        </div>
+                    </div>
+                    <div class="field" id="colNameField" style="display: none;">
+                        <span class="field-title">시나리오명 · 캐릭터 이름</span>
+                        <label for="colScenarioName">시나리오명 <span style="color: var(--text-3); font-weight: 500;">/ 글자 크기</span></label>
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <input type="text" id="colScenarioName" placeholder="시나리오명 입력" style="flex: 1; width: 100%;">
+                            <input type="number" id="colScenarioSize" value="60" title="글자 크기" class="sm">
+                        </div>
+                        <label for="colCharName">캐릭터 이름 <span style="color: var(--text-3); font-weight: 500;">/ 글자 크기</span></label>
+                        <div class="input-group" style="margin-bottom: 12px;">
+                            <input type="text" id="colCharName" placeholder="이름 입력" style="flex: 1; width: 100%;">
+                            <input type="number" id="colCharSize" value="100" title="글자 크기" class="sm">
+                        </div>
+                        <label class="check"><input type="checkbox" id="colVerticalText"> 세로 쓰기</label>
+                    </div>
+                    <div class="field" id="colSideField" style="display: none;">
+                        <div class="field-title-row">
+                            <span class="field-title">추가로 삽입할 스탠딩 <span class="optional">(선택)</span></span>
+                            <span class="title-actions">
+                                <button type="button" id="btnResetSideImg" class="link-btn neutral" style="display: none;" title="스탠딩의 위치·배율과 영역 너비·높이를 처음 상태로 되돌려요">🔄 위치·크기 초기화</button>
+                                <button type="button" id="btnClearSideImg" class="link-btn" style="display: none;">✕ 스탠딩 빼기</button>
+                            </span>
+                        </div>
+                        <div class="inline-field" style="gap: 10px; margin-bottom: 12px;">
+                            <label for="colSidePosition" style="margin: 0;">배치 위치</label>
+                            <select id="colSidePosition">
+                                <option value="left" selected>좌측</option>
+                                <option value="right">우측</option>
+                            </select>
+                        </div>
+                        <div id="colSidePickerWrap" style="display: none; margin-bottom: 12px;">
+                            <label style="margin-bottom: 8px;">첨부된 이미지에서 고르기</label>
+                            <div class="side-picker" id="colSidePicker"></div>
+                        </div>
+                        <label for="colSideImg">직접 올리기</label>
+                        <input type="file" id="colSideImg" accept="image/*">
+                    </div>
+                    <details class="field collapsible">
+                        <summary class="field-title">텍스트 추가 설정<span class="caret" aria-hidden="true">▼</span></summary>
+                        <div class="field-row" style="margin: 12px 0 14px;">
+                            <div><label for="colLabelSize">표정 이름 크기</label><input type="number" id="colLabelSize" value="55" min="1" class="sm" title="비우거나 자르기 크기를 바꾸면 자동 크기로 다시 맞춰져요"></div>
+                            <div><label for="colLabelV">세로 위치</label>
+                                <select id="colLabelV">
+                                    <option value="bottom" selected>하단</option>
+                                    <option value="top">상단</option>
+                                </select>
+                            </div>
+                            <div><label for="colLabelH">가로 위치</label>
+                                <select id="colLabelH">
+                                    <option value="left">좌측</option>
+                                    <option value="center" selected>중앙</option>
+                                    <option value="right">우측</option>
+                                </select>
+                            </div>
+                        </div>
+                        <label for="colFontFile">사용자 폰트 업로드</label>
+                        <input type="file" id="colFontFile" accept=".ttf,.otf,.woff,.woff2">
+                        <div id="colFontStatus" class="hint" style="margin-top: 6px; color: var(--text-2);"></div>
+                    </details>
+                </div>
+            </div>
+            </div>
+
+            <div class="collage-preview-wrapper" id="collagePreviewArea" style="display: none;">
+                <div class="sub-head">
+                    <div>
+                        <h4><span class="num">①</span>포트레이트 이름 및 순서 수정</h4>
+                        <p class="help-text">드래그나 화살표 버튼으로 순서를 바꾸고 이름을 수정할 수 있어요. 이미지를 누르면 그 표정을 보면서 크롭할 수 있어요. 모든 표정에 함께 적용하거나 그 표정만 따로 적용할 수 있어요. 🙈 실루엣, 🌫️ 블러 처리를 켜고 끌 수 있으며 변경 사항은 최종 미리보기에 자동 반영됩니다.</p>
+                    </div>
+                    <button id="btnToggleAllNames" class="sub-btn fit" style="display: none;">🔤 표정 이름 전체 끄기</button>
+                </div>
+                <div class="collage-grid" id="collageGrid"></div>
+
+                <div class="sub-head">
+                    <div>
+                        <h4><span class="num">②</span>최종 이미지 미리보기</h4>
+                        <p class="help-text">위쪽 설정을 바꾸면 자동으로 반영됩니다.</p>
+                    </div>
+                </div>
+                <div id="canvasWheelHint">
+                    💡 포트레이트 칸을 누르면 그 표정 크롭 (전체 또는 개별 적용) · 스탠딩: 마우스 휠로 배율 조절 · 드래그로 위치 이동 · 미리보기에 마우스를 올리면 스탠딩 영역 너비·높이 조절 바가 나타납니다
+                </div>
+                <div class="preview-stage">
+                    <div class="canvas-wrap" id="canvasWrap">
+                        <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
+                        <div class="side-width-bar" id="sideWidthBar">
+                            <div class="bar-row">
+                                <span>스탠딩 너비</span>
+                                <input type="range" id="sideWidthSlider" min="50" max="2000" step="1" value="300">
+                                <span id="sideWidthValue">300px</span>
+                            </div>
+                            <div class="bar-row">
+                                <span>스탠딩 높이</span>
+                                <input type="range" id="sideHeightSlider" min="50" max="4000" step="1" value="800">
+                                <span id="sideHeightValue">800px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btnDownloadCollage" class="action-btn">포트레이트 모음집 다운로드</button>
+                <div class="final-actions">
+                    <button id="btnCollageBackup" class="sub-btn soft lg">💾 설정 백업</button>
+                    <button id="btnDownloadCollagePieces" class="sub-btn warm lg">파일명 반영 원본 다운로드</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ========== 탭 3: 컷인 ========== -->
+    <div id="tab-cutin" class="tab-content">
+        <div class="dropzone">
+            <div class="dropzone-icon">📥</div>
+            <span class="dropzone-title">파일 불러오기 및 추가</span>
+            <p id="cutinDzHint" style="display: none;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다.</p>
+            <input type="file" id="fileCutin" accept="image/*" multiple>
+            <div id="cutinFileCount" class="file-count">선택된 파일: 0개</div>
+            <div id="cutinFileList" class="file-list-container" style="display: none;"></div>
+            <button id="btnClearCutinFiles" class="sub-btn danger" style="display: none;">🗑️ 첨부 파일 전체 초기화</button>
+        </div>
+
+        <section class="section">
+            <div class="section-head">
+                <span class="step-badge">3</span>
+                <div>
+                    <h3>컷인 다중 추출</h3>
+                    <p class="help-text">여러 장의 파일을 동일한 좌표와 배율로 잘라 <strong>'원본 파일명_컷인'이라는 파일명으로</strong> 개별 추출합니다.</p>
+                </div>
+                <label class="sub-btn soft fit head-action" title="저장해둔 설정(JSON)을 불러와요">
+                    📂 설정 불러오기
+                    <input type="file" id="importCiCropJson" accept=".json" style="display: none;">
+                </label>
+            </div>
+            <div class="split-layout center-y">
+                <div class="split-left-wrapper">
+                    <div class="canvas-box-wrap" id="ciBoxWrap">
+                        <img id="imgCutin" src="">
+                        <div id="ciOverlay" class="overlay-guide"></div>
+                    </div>
+                </div>
+                <div class="split-right">
+                    <details class="field collapsible">
+                        <summary class="field-title">캔버스 크기<span class="caret" aria-hidden="true">▼</span></summary>
+                        <div class="field-row" style="margin-top: 12px;">
+                            <div><label for="cutinW">가로 (px)</label><input type="number" id="cutinW" value="1200"></div>
+                            <div><label for="cutinH">세로 (px)</label><input type="number" id="cutinH" value="400"></div>
+                        </div>
+                    </details>
+                    <div class="field">
+                        <div class="inline-field">
+                            <span class="field-title" style="display: inline-flex; align-items: center; gap: 6px;">배경 설정<span class="caret" aria-hidden="true">▼</span></span>
+                            <label class="check has-tip" data-tip="해제 시, 배경색 설정 가능"><input type="checkbox" id="ciTransparent" checked> 투명 배경</label>
+                        </div>
+                        <div class="input-group color-collapse" id="ciColorGroup">
+                            <input type="color" id="ciColorPicker" value="#ffffff">
+                            <input type="text" id="ciHexInput" value="#ffffff" maxlength="7" class="full-width">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <span class="field-title">가이드 및 확대</span>
+                        <div class="check-list">
+                            <label class="check"><input type="checkbox" id="ciGuideGrid"> 격자 가이드</label>
+                            <label class="check has-tip" data-tip="마우스 스크롤의 감도가 올라갑니다."><input type="checkbox" id="ciFineZoom"> 느리게 확대</label>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button id="btnDownloadCutinEach" class="action-btn" style="display: none;" disabled>📥 한 장씩 다운로드</button>
+                        <button id="btnCropCutin" class="action-btn" style="display: none;" disabled>📦 압축 파일로 다운로드 (ZIP)</button>
+                        <button id="btnCiCropBackup" class="sub-btn soft lg" style="display: none;" disabled>💾 설정 백업</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <a class="link-card" href="https://nyacha75.github.io/ccfolia_cutin/" target="_blank" rel="noopener">
+            <span class="link-card-icon" aria-hidden="true">🌊</span>
+            <span class="link-card-text">
+                <span class="link-card-tag">쏘랑</span>
+                <b>다인 컷인 에디터</b>
+            </span>
+            <span class="link-card-go">새 탭에서 열기 <span aria-hidden="true">↗</span></span>
+            <svg class="link-card-wave" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M0 30 C 150 0, 300 60, 450 30 S 750 0, 900 30 S 1100 60, 1200 30 V60 H0 Z" fill="rgba(255,255,255,.14)"/>
+                <path d="M0 40 C 200 15, 350 65, 600 40 S 1000 15, 1200 42 V60 H0 Z" fill="rgba(255,255,255,.12)"/>
+            </svg>
+        </a>
+    </div>
+</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -509,6 +903,14 @@
     let globalSideScale = 1.0; 
     let sideOffsetX = 0;       
     let sideOffsetY = 0;
+    let itemCropOverrides = {};     // 표정별 개별 크롭: fileId → { canvasData, rotation, cW, cH }
+    let itemCropper = null, itemCropTargetId = null, itemCropBaseRotation = 0;
+    let lastCollageLayout = null;   // 최종 미리보기에서 클릭한 칸을 찾기 위한 배치 정보
+    let sideAreaHeight = null;      // 좌측 스탠딩 영역의 높이(px). null이면 포트레이트 그리드 높이와 같게
+    let sideFromPtId = null;        // 첨부된 이미지 중에서 고른 스탠딩의 파일 ID
+    let sideChangeFromCode = false;
+    let sidePickUrls = [];
+    let toastTimer = null;
     let sideAreaWidth = null;       // 좌측 스탠딩이 들어가는 영역(캔버스)의 너비(px). null이면 스탠딩 원본 비율대로 자동 계산
     let customFontName = null;      // 사용자 업로드 폰트의 CSS font-family 이름
     let customFontDataUrl = null;   // 백업용 base64 data URL
@@ -596,14 +998,15 @@
         const box = document.getElementById(`${type}BoxWrap`);
         if (!box) return;
         const ratio = w / h;
+        const maxSide = (type === 'col' || type === 'hs') ? 380 : 450; // 두상 · 2-2 미리보기는 조금 작게
         let tw, th;
         
         if (ratio > 1) { 
-            tw = 450; 
-            th = Math.round(450 / ratio); 
+            tw = maxSide; 
+            th = Math.round(maxSide / ratio); 
         } else { 
-            th = 450; 
-            tw = Math.round(450 * ratio); 
+            th = maxSide; 
+            tw = Math.round(maxSide * ratio); 
         }
         
         box.style.width = tw + 'px'; 
@@ -618,10 +1021,14 @@
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     };
 
+    // 파일명에서 표정 이름 추출: 끝의 ( ) 안 → 없으면 마지막 '_' · '@' · '-' 뒤 → 없으면 파일명 전체
     const getShortName = (filename) => {
-        const b = filename.replace(/\.[^/.]+$/, "");
-        const p = b.split('_');
-        return p.length > 1 ? p[p.length - 1] : b; 
+        const b = filename.replace(/\.[^/.]+$/, "").trim();
+        const paren = /[(（]([^()（）]+)[)）]\s*$/.exec(b);
+        if (paren && paren[1].trim()) return paren[1].trim();
+        const p = b.split(/[_@-]/);
+        const last = p[p.length - 1].trim();
+        return p.length > 1 && last ? last : b;
     };
 
     const getNewFilename = (filename, suffix) => {
@@ -841,9 +1248,10 @@
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-            const targetId = e.target.dataset.target;
+            const tabBtn = e.currentTarget;
+            const targetId = tabBtn.dataset.target;
             document.getElementById(targetId).classList.add('active');
-            e.target.classList.add('active');
+            tabBtn.classList.add('active');
             if(targetId === 'tab-headshot') { stashCropVerbatim('hs'); loadCropper('hs'); }
             if(targetId === 'tab-portrait') { stashCropVerbatim('pt'); stashCropVerbatim('col'); loadCropper('pt'); loadCropper('col'); }
             if(targetId === 'tab-cutin') { stashCropVerbatim('ci'); loadCropper('ci'); }
@@ -860,8 +1268,8 @@
         const hex = document.getElementById(`${type}HexInput`);
         if(chk && grp) {
             const sync = () => {
-                grp.style.opacity = chk.checked ? '0.5' : '1';
-                grp.style.pointerEvents = chk.checked ? 'none' : 'auto';
+                grp.classList.toggle('open', !chk.checked);
+                grp.closest('.field')?.classList.toggle('expanded', !chk.checked);
                 updatePreviewBg(type);
             };
             chk.addEventListener('change', sync);
@@ -883,6 +1291,126 @@
         document.getElementById(`${type}GuideCircle`)?.addEventListener('change', () => renderOverlay(type));
     });
 
+    function showToast(title, body, ms = 7000) {
+        const t = document.getElementById('toast');
+        document.getElementById('toastTitle').innerText = title;
+        document.getElementById('toastBody').innerText = body || '';
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+    }
+    document.getElementById('toast').addEventListener('click', e => e.currentTarget.classList.remove('show'));
+
+    // 좌측 스탠딩: 첨부된 이미지 중에서 고르기
+    function renderSidePicker() {
+        const wrap = document.getElementById('colSidePickerWrap');
+        const box = document.getElementById('colSidePicker');
+        sidePickUrls.forEach(u => URL.revokeObjectURL(u));
+        sidePickUrls = [];
+        box.innerHTML = '';
+        const entries = f_pt.map((f, i) => ({ f, id: f_ptIds[i] })).filter(e => e.f);
+        wrap.style.display = entries.length ? 'block' : 'none';
+        entries.forEach(({ f, id }) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'side-thumb';
+            b.dataset.id = id;
+            b.title = f.name;
+            const url = URL.createObjectURL(f);
+            sidePickUrls.push(url);
+            const img = document.createElement('img');
+            img.src = url;
+            b.appendChild(img);
+            b.onclick = () => {
+                if (sideFromPtId === id) { setSideImageFile(null, null); return; }
+                const file = findFileByPtId(id);
+                if (file) setSideImageFile(file, id);
+            };
+            box.appendChild(b);
+        });
+        updateSideUI();
+    }
+    function setSideImageFile(file, fromPtId) {
+        const input = document.getElementById('colSideImg');
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+        } else {
+            input.value = '';
+        }
+        sideFromPtId = fromPtId || null;
+        sideChangeFromCode = true;
+        input.dispatchEvent(new Event('change'));
+    }
+    // 스탠딩 유무에 따라 이름 입력칸 / 빼기 버튼 / 선택 표시를 갱신
+    function updateSideUI() {
+        const hasSide = !!document.getElementById('colSideImg').files[0];
+        document.getElementById('colNameField').style.display = f_pt.length > 0 ? 'block' : 'none';
+        document.getElementById('colSideField').style.display = f_pt.length > 0 ? 'block' : 'none';
+        document.getElementById('btnClearSideImg').style.display = hasSide ? 'inline-block' : 'none';
+        document.getElementById('btnResetSideImg').style.display = hasSide ? 'inline-block' : 'none';
+        document.querySelectorAll('#colSidePicker .side-thumb').forEach(b => b.classList.toggle('on', hasSide && b.dataset.id === sideFromPtId));
+    }
+    document.getElementById('btnClearSideImg').addEventListener('click', () => setSideImageFile(null, null));
+    document.getElementById('btnResetSideImg').addEventListener('click', () => {
+        globalSideScale = 1.0; sideOffsetX = 0; sideOffsetY = 0;
+        sideAreaWidth = null; sideAreaHeight = null;
+        scheduleAutoPreview();
+    });
+
+    // 표정 이름 기본 크기: 자르기 가로 크기에 맞춘 자동값을 입력칸에 채워둔다 (직접 바꾸면 그 값을 유지)
+    let labelSizeManual = false;
+    const getAutoLabelSize = () => Math.max(20, Math.floor((parseInt(document.getElementById('colW').value) || 460) * 0.12));
+    function syncAutoLabelSize() {
+        if (!labelSizeManual) document.getElementById('colLabelSize').value = getAutoLabelSize();
+    }
+    document.getElementById('colLabelSize').addEventListener('input', e => {
+        labelSizeManual = e.target.value.trim() !== '';
+    });
+    document.getElementById('colLabelSize').addEventListener('change', e => {
+        if (!e.target.value.trim()) { labelSizeManual = false; syncAutoLabelSize(); scheduleAutoPreview(); }
+    });
+    ['colW', 'colH'].forEach(id => document.getElementById(id).addEventListener('change', syncAutoLabelSize));
+    document.getElementById('colSquareToggle').addEventListener('change', syncAutoLabelSize);
+    syncAutoLabelSize();
+
+    // 2-2 · 컷인 레이아웃: 설정 패널이 "모두 접힌 상태"일 때의 높이를 기준으로 세로 중앙을 맞춘다.
+    // 접힌 설정을 펼쳐도 기준 높이는 그대로라서 미리보기 위치가 움직이지 않는다.
+    function alignCenteredLayout(layout) {
+        if (!layout || !layout.offsetParent) return;
+        const L = layout.children[0];
+        const R = layout.children[1];
+        if (getComputedStyle(layout).flexDirection === 'column') { L.style.marginTop = ''; R.style.marginTop = ''; return; }
+        let extra = 0;
+        R.querySelectorAll('details[open]').forEach(d => {
+            const cs = getComputedStyle(d);
+            const closedH = d.querySelector('summary').offsetHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+            extra += d.offsetHeight - closedH;
+        });
+        R.querySelectorAll('.color-collapse').forEach(c => {
+            extra += c.offsetHeight + parseFloat(getComputedStyle(c).marginTop);
+        });
+        const rClosed = R.offsetHeight - extra;
+        const lH = L.offsetHeight;
+        L.style.marginTop = Math.max(0, (rClosed - lH) / 2) + 'px';
+        R.style.marginTop = Math.max(0, (lH - rClosed) / 2) + 'px';
+    }
+    const alignAllCenteredLayouts = () => document.querySelectorAll('.split-layout.center-y').forEach(alignCenteredLayout);
+    document.querySelectorAll('.split-layout.center-y').forEach(layout => {
+        const ro = new ResizeObserver(() => alignCenteredLayout(layout));
+        Array.from(layout.children).forEach(el => ro.observe(el));
+    });
+    window.addEventListener('resize', alignAllCenteredLayouts);
+
+    // 새 이미지를 등록하면 '느리게 확대'를 자동으로 해제
+    const resetFineZoom = (...types) => types.forEach(type => {
+        const chk = document.getElementById(`${type}FineZoom`);
+        if (!chk || !chk.checked) return;
+        chk.checked = false;
+        chk.dispatchEvent(new Event('change'));
+    });
+
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
     /* ==================================================
@@ -891,7 +1419,9 @@
 
     // [탭 1] 두상
     document.getElementById('fileHeadshot').addEventListener('change', e => {
-        if(!e.target.files.length) return; f_hs = e.target.files[0]; loadCropper('hs');
+        if(!e.target.files.length) return; f_hs = e.target.files[0]; resetFineZoom('hs');
+        document.getElementById('btnCropHeadshot').style.display = 'block';
+        loadCropper('hs');
     });
     document.getElementById('btnCropHeadshot').addEventListener('click', () => {
         if(!c_hs) return;
@@ -902,7 +1432,7 @@
     });
 
     // ==========================================
-    // [탭 2] 반신 스탠딩 - 파일 리스트 관리
+    // [탭 2] 스탠딩 - 파일 리스트 관리
     // ==========================================
     // 첨부 파일이 1장이면 ZIP 대신 단일 PNG로 저장되므로 버튼 문구도 맞춰서 바꾼다
     function getPtBtnLabel() {
@@ -918,6 +1448,8 @@
         const countEl = document.getElementById('portraitFileCount');
         const clearBtn = document.getElementById('btnClearPortraitFiles');
         listEl.innerHTML = '';
+        renderSidePicker();
+        ['btnCropPortrait', 'btnPtCropBackup', 'portraitDzHint'].forEach(id => document.getElementById(id).style.display = f_pt.length > 0 ? '' : 'none');
         countEl.innerText = `선택된 파일: ${f_pt.length}개`;
         clearBtn.style.display = f_pt.length > 0 ? 'block' : 'none';
         updatePtBtnLabel();
@@ -975,7 +1507,7 @@
         });
     };
 
-    // 첨부된 반신 스탠딩 파일 순서를 드래그로 변경
+    // 첨부된 스탠딩 파일 순서를 드래그로 변경
     (function() {
         const listEl = document.getElementById('portraitFileList');
         let draggedPtItem = null;
@@ -1012,6 +1544,7 @@
     document.getElementById('filePortrait').addEventListener('change', e => {
         if(!e.target.files.length) return;
         const isFirstLoad = f_pt.length === 0;
+        resetFineZoom('pt', 'col');
         
         const newFiles = Array.from(e.target.files);
         f_pt = f_pt.concat(newFiles);
@@ -1031,7 +1564,7 @@
 
     document.getElementById('btnClearPortraitFiles').addEventListener('click', () => {
         if (f_pt.length === 0) return;
-        if (!confirm('첨부된 반신 스탠딩 파일을 모두 초기화할까요? 콜라주 미리보기도 함께 초기화됩니다.')) return;
+        if (!confirm('첨부된 스탠딩 파일을 모두 초기화할까요? 콜라주 미리보기도 함께 초기화됩니다.')) return;
         f_pt = [];
         f_ptIds = [];
         document.getElementById('filePortrait').value = '';
@@ -1090,10 +1623,10 @@
     });
 
     // ==========================================
-    // [탭 2-1] 반신 스탠딩 - 크롭 위치/배율/회전 백업 & 불러오기
+    // [탭 2-1] 스탠딩 - 크롭 위치/배율/회전 백업 & 불러오기
     // ==========================================
     document.getElementById('btnPtCropBackup').addEventListener('click', () => {
-        if (!c_pt) { alert('먼저 반신 스탠딩 파일을 첨부하고 크롭 위치를 맞춰주세요.'); return; }
+        if (!c_pt) { alert('먼저 스탠딩 파일을 첨부하고 크롭 위치를 맞춰주세요.'); return; }
         const backup = {
             type: 'ssorang_pt_crop_v1',
             w: document.getElementById('portraitW').value,
@@ -1104,6 +1637,7 @@
         };
         const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
         safeDownloadBlob(blob, '스탠딩_크롭설정.json');
+        showToast('💾 크롭 설정을 저장했어요', '표정을 나중에 추가로 그려서 넣을 때, 이 백업을 불러오면 이전과 동일한 위치·배율·회전으로 맞출 수 있어요. 파일을 첨부하기 전에 불러와도 적용됩니다.');
     });
 
     async function importPtCropSettingsFile(file) {
@@ -1123,7 +1657,7 @@
             if (f_pt.length > 0) {
                 loadCropper('pt');
             } else {
-                alert('크롭 설정을 불러왔습니다. 반신 스탠딩 파일을 첨부하면 자동으로 동일한 위치·배율로 맞춰집니다.');
+                alert('크롭 설정을 불러왔습니다. 스탠딩 파일을 첨부하면 자동으로 동일한 위치·배율로 맞춰집니다.');
             }
         } catch (err) {
             alert('크롭 설정을 불러오는 중 오류가 발생했습니다: ' + err.message);
@@ -1155,6 +1689,7 @@
         };
         const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
         safeDownloadBlob(blob, '컷인_크롭설정.json');
+        showToast('💾 크롭 설정을 저장했어요', '컷인을 나중에 추가로 그려서 넣을 때, 이 백업을 불러오면 이전과 동일한 위치·배율로 맞출 수 있어요. 파일을 첨부하기 전에 불러와도 적용됩니다.');
     });
 
     document.getElementById('importCiCropJson').addEventListener('change', async (e) => {
@@ -1190,6 +1725,8 @@
         const clearBtn = document.getElementById('btnClearCutinFiles');
         listEl.innerHTML = '';
         countEl.innerText = `선택된 파일: ${f_ci.length}개`;
+        document.getElementById('btnCropCutin').style.display = f_ci.length >= 2 ? 'block' : 'none';
+        ['btnDownloadCutinEach', 'btnCiCropBackup', 'cutinDzHint'].forEach(id => document.getElementById(id).style.display = f_ci.length > 0 ? '' : 'none');
         clearBtn.style.display = f_ci.length > 0 ? 'block' : 'none';
 
         if (f_ci.length === 0) {
@@ -1294,6 +1831,7 @@
     document.getElementById('fileCutin').addEventListener('change', e => {
         if(!e.target.files.length) return;
         const isFirstLoad = f_ci.length === 0;
+        resetFineZoom('ci');
         
         f_ci = f_ci.concat(Array.from(e.target.files));
         e.target.value = ''; 
@@ -1422,7 +1960,7 @@
     document.getElementById('btnCollageBackup').addEventListener('click', async () => {
         const items = document.querySelectorAll('.collage-item');
         if (items.length === 0) {
-            alert('저장할 콜라주 조각이 없습니다. 먼저 반신 스탠딩 파일을 추가해주세요.');
+            alert('저장할 콜라주 조각이 없습니다. 먼저 스탠딩 파일을 추가해주세요.');
             return;
         }
         document.getElementById('backupNameModal').classList.add('open');
@@ -1462,7 +2000,8 @@
                     blindMode: item.dataset.blindMode || 'none',
                     nameOff: item.dataset.nameOff === 'true',
                     originalFileName: originalFile ? originalFile.name : null,
-                    originalSrc: originalBase64
+                    originalSrc: originalBase64,
+                    cropOverride: itemCropOverrides[fileId] || null
                 });
             }
 
@@ -1479,7 +2018,12 @@
                 charName: document.getElementById('colCharName').value,
                 charSize: document.getElementById('colCharSize').value,
                 sideWidth: sideAreaWidth || '',   // 스탠딩이 들어가는 영역(캔버스) 너비
+                sideHeight: sideAreaHeight || '', // 스탠딩이 들어가는 영역 높이
+                sidePosition: document.getElementById('colSidePosition').value, // 스탠딩 배치 위치 (left/right)
                 verticalText: document.getElementById('colVerticalText').checked,
+                labelSize: labelSizeManual ? document.getElementById('colLabelSize').value : '',
+                labelV: document.getElementById('colLabelV').value,
+                labelH: document.getElementById('colLabelH').value,
                 globalSideScale: globalSideScale,
                 sideOffsetX: sideOffsetX,
                 sideOffsetY: sideOffsetY
@@ -1554,7 +2098,14 @@
             document.getElementById('colCharName').value = data.settings.charName;
             document.getElementById('colCharSize').value = data.settings.charSize;
             sideAreaWidth = parseInt(data.settings.sideWidth) || null;
+            sideAreaHeight = parseInt(data.settings.sideHeight) || null;
+            document.getElementById('colSidePosition').value = data.settings.sidePosition === 'right' ? 'right' : 'left';
             document.getElementById('colVerticalText').checked = !!data.settings.verticalText;
+            labelSizeManual = !!data.settings.labelSize;
+            document.getElementById('colLabelSize').value = data.settings.labelSize || '';
+            syncAutoLabelSize();
+            document.getElementById('colLabelV').value = data.settings.labelV === 'top' ? 'top' : 'bottom';
+            document.getElementById('colLabelH').value = ['left', 'right'].includes(data.settings.labelH) ? data.settings.labelH : 'center';
             
             globalSideScale = data.settings.globalSideScale || 1.0;
             sideOffsetX = data.settings.sideOffsetX || 0;
@@ -1568,6 +2119,8 @@
             } else {
                 document.getElementById('colSideImg').value = '';
             }
+            sideFromPtId = null;
+            updateSideUI();
 
             if (data.fontName && data.fontData) {
                 try {
@@ -1589,6 +2142,8 @@
             });
             f_pt = restoredOriginals;
             f_ptIds = restoredOriginals.map(() => genFilePtId());
+            itemCropOverrides = {};
+            data.items.forEach((itemData, idx) => { if (itemData.cropOverride) itemCropOverrides[f_ptIds[idx]] = itemData.cropOverride; });
             renderPortraitFileList();
 
             const gridArea = document.getElementById('collageGrid');
@@ -1607,7 +2162,7 @@
         }
     }
 
-    document.getElementById('importCollageJson').addEventListener('change', async (e) => {
+    document.getElementById('importCollageJson')?.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         e.target.value = '';
         await importCollageBackupFile(file);
@@ -1682,12 +2237,45 @@
             await requestRedraw();
         }, { passive: true });
         cvs.addEventListener('touchend', () => { isDragging = false; });
+
+        // 최종 미리보기에서 포트레이트 칸을 누르면 (드래그가 아닌 클릭일 때) 그 표정만 따로 크롭
+        let downX = 0, downY = 0;
+        cvs.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
+        const cellAt = (e) => {
+            const L = lastCollageLayout;
+            if (!L) return -1;
+            const r = cvs.getBoundingClientRect();
+            const k = cvs.width / r.width;
+            const x = (e.clientX - r.left) * k - L.offsetX, y = (e.clientY - r.top) * k - L.gap;
+            if (x < 0 || y < 0) return -1;
+            const col = Math.floor(x / (L.w + L.gap)), row = Math.floor(y / (L.h + L.gap));
+            if (col >= L.cols || x - col * (L.w + L.gap) > L.w || y - row * (L.h + L.gap) > L.h) return -1;
+            const idx = row * L.cols + col;
+            return idx < L.count ? idx : -1;
+        };
+        cvs.addEventListener('click', (e) => {
+            if (Math.hypot(e.clientX - downX, e.clientY - downY) > 4) return;
+            const idx = cellAt(e);
+            if (idx < 0) return;
+            const item = document.querySelectorAll('.collage-item')[idx];
+            if (item) openItemCropModal(item.dataset.id);
+        });
+        cvs.addEventListener('mousemove', (e) => {
+            if (isDragging) return;
+            cvs.style.cursor = cellAt(e) >= 0 ? 'pointer' : (document.getElementById('colSideImg').files[0] ? 'grab' : 'default');
+        });
     })();
 
     // 미리보기에 마우스를 올리면 나타나는 "스탠딩 영역 너비" 슬라이더
     document.getElementById('sideWidthSlider').addEventListener('input', async (e) => {
         sideAreaWidth = parseInt(e.target.value) || null;
         document.getElementById('sideWidthValue').innerText = `${e.target.value}px`;
+        await requestRedraw();
+    });
+
+    document.getElementById('sideHeightSlider').addEventListener('input', async (e) => {
+        sideAreaHeight = parseInt(e.target.value) || null;
+        document.getElementById('sideHeightValue').innerText = `${e.target.value}px`;
         await requestRedraw();
     });
 
@@ -1709,7 +2297,7 @@
         const gridH = (rows * h) + ((rows - 1) * gap);
         
         // 좌측 스탠딩: 이미지는 원본 비율을 유지하고, 이미지가 들어가는 "영역"의 너비만 조절한다
-        let sideImg = null, sideAreaW = 0, sideBaseW = 0, sideBaseH = 0;
+        let sideImg = null, sideAreaW = 0, sideAreaH = 0, sideBaseW = 0, sideBaseH = 0;
         const sideFile = document.getElementById('colSideImg').files[0];
         if (sideFile) { 
             sideImg = new Image(); 
@@ -1723,8 +2311,9 @@
             if (!sideImg.naturalWidth) {
                 sideImg = null;
             } else {
-                sideBaseH = gridH;
-                sideBaseW = sideImg.naturalWidth * (gridH / sideImg.naturalHeight);
+                sideAreaH = sideAreaHeight > 0 ? sideAreaHeight : gridH;
+                sideBaseH = sideAreaH;
+                sideBaseW = sideImg.naturalWidth * (sideBaseH / sideImg.naturalHeight);
                 sideAreaW = sideAreaWidth > 0 ? sideAreaWidth : Math.round(sideBaseW);
             }
         }
@@ -1739,11 +2328,17 @@
                 const slider = document.getElementById('sideWidthSlider');
                 slider.value = sideAreaW;
                 document.getElementById('sideWidthValue').innerText = `${sideAreaW}px`;
+                const hSlider = document.getElementById('sideHeightSlider');
+                hSlider.value = sideAreaH;
+                document.getElementById('sideHeightValue').innerText = `${sideAreaH}px`;
             }
         }
 
+        const sideOnRight = document.getElementById('colSidePosition').value === 'right';
+        // 스탠딩 영역의 시작 x좌표 (좌측: 맨 앞 / 우측: 포트레이트 그리드 뒤)
+        const sideX = sideOnRight ? gap + gridW + gap : gap;
         cvs.width = (sideImg ? sideAreaW + gap : 0) + gridW + (gap * 2); 
-        cvs.height = gridH + (gap * 2);
+        cvs.height = Math.max(gridH, sideImg ? sideAreaH : 0) + (gap * 2);
         
         const ctx = cvs.getContext('2d');
         ctx.fillStyle = '#ffffff'; 
@@ -1753,15 +2348,17 @@
             ctx.save();
             // 스탠딩 영역 밖으로 이미지가 삐져나가지 않도록 클리핑
             ctx.beginPath();
-            ctx.rect(0, 0, gap + sideAreaW + gap / 2, cvs.height);
+            const clipX = sideOnRight ? sideX - gap / 2 : 0;
+            ctx.rect(clipX, 0, sideX + sideAreaW + gap / 2 - clipX, Math.min(cvs.height, sideAreaH + gap * 2));
             ctx.clip();
-            ctx.translate(gap + sideAreaW / 2 + sideOffsetX, gap + sideBaseH / 2 + sideOffsetY);
+            ctx.translate(sideX + sideAreaW / 2 + sideOffsetX, gap + sideBaseH / 2 + sideOffsetY);
             ctx.scale(globalSideScale, globalSideScale);
             ctx.drawImage(sideImg, -sideBaseW / 2, -sideBaseH / 2, sideBaseW, sideBaseH);
             ctx.restore();
         }
 
-        const offsetX = gap + (sideImg ? sideAreaW + gap : 0);
+        const offsetX = gap + (sideImg && !sideOnRight ? sideAreaW + gap : 0);
+        if (!isDownload) lastCollageLayout = { offsetX, gap, w, h, cols, count: items.length };
 
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(offsetX - gap / 2, 0, gridW + gap, cvs.height);
@@ -1804,12 +2401,18 @@
                     }
 
                     if (text && !isNameOff) {
-                        const fs = Math.max(20, Math.floor(w * 0.12));
+                        // 표정 이름: 크기(비우면 자동) / 세로(상단·하단) / 가로(좌측·중앙·우측)
+                        const fs = parseInt(document.getElementById('colLabelSize').value) || Math.max(20, Math.floor(w * 0.12));
+                        const labelV = document.getElementById('colLabelV').value;
+                        const labelH = document.getElementById('colLabelH').value;
+                        const padX = fs * 0.3, padY = fs * 0.2;
+                        const lx = labelH === 'left' ? tx + padX : (labelH === 'right' ? tx + w - padX : tx + w / 2);
+                        const ly = labelV === 'top' ? ty + padY : ty + h - padY;
                         ctx.font = `900 ${fs}px ${fontFamily}`;
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                        ctx.textAlign = labelH; ctx.textBaseline = labelV === 'top' ? 'top' : 'bottom';
                         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, fs * 0.25); ctx.lineJoin = 'round';
-                        ctx.strokeText(text, tx + w/2, ty + h - (fs*0.2));
-                        ctx.fillStyle = textColor; ctx.fillText(text, tx + w/2, ty + h - (fs*0.2));
+                        ctx.strokeText(text, lx, ly);
+                        ctx.fillStyle = textColor; ctx.fillText(text, lx, ly);
                     }
                     r();
                 };
@@ -1841,7 +2444,7 @@
                         y += lineHeight;
                     }
                 };
-                let colX = gap + 10;
+                let colX = sideX + 10;
                 if (charName) {
                     colX += charSize / 2;
                     drawVerticalColumn(charName, colX, charSize);
@@ -1857,15 +2460,15 @@
                 if (scenarioName) {
                     ctx.font = `900 ${scenarioSize}px ${fontFamily}`;
                     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, scenarioSize * 0.2); ctx.lineJoin = 'round';
-                    ctx.strokeText(scenarioName, gap + 10, textY);
-                    ctx.fillStyle = textColor; ctx.fillText(scenarioName, gap + 10, textY);
+                    ctx.strokeText(scenarioName, sideX + 10, textY);
+                    ctx.fillStyle = textColor; ctx.fillText(scenarioName, sideX + 10, textY);
                     textY += scenarioSize + 10;
                 }
                 if (charName) {
                     ctx.font = `900 ${charSize}px ${fontFamily}`;
                     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
-                    ctx.strokeText(charName, gap + 10, textY);
-                    ctx.fillStyle = textColor; ctx.fillText(charName, gap + 10, textY);
+                    ctx.strokeText(charName, sideX + 10, textY);
+                    ctx.fillStyle = textColor; ctx.fillText(charName, sideX + 10, textY);
                 }
             }
         }
@@ -1961,7 +2564,13 @@
         btnBlur.onclick = () => setMode('blur');
 
         controls.append(btnL, btnSil, btnBlur, btnR);
-        item.append(pImg, pInput, controls);
+        const thumb = document.createElement('div');
+        thumb.className = 'collage-thumb';
+        thumb.title = '눌러서 크롭 (전체 또는 이 표정만)';
+        if (itemCropOverrides[fileId]) item.classList.add('custom-crop');
+        thumb.appendChild(pImg);
+        thumb.addEventListener('click', () => openItemCropModal(item.dataset.id));
+        item.append(thumb, pInput, controls);
         gridArea.appendChild(item);
         updateToggleAllNamesBtn();
     }
@@ -1987,6 +2596,98 @@
         updateToggleAllNamesBtn();
         scheduleAutoPreview();
     });
+
+    // ===== 표정 칸을 눌러서 크롭: 모든 표정에 적용 / 이 표정만 적용 =====
+    function closeItemCropModal() {
+        document.getElementById('itemCropModal').classList.remove('open');
+        if (itemCropper) { itemCropper.destroy(); itemCropper = null; }
+        const img = document.getElementById('itemCropImg');
+        if (img.dataset.url) { URL.revokeObjectURL(img.dataset.url); delete img.dataset.url; }
+        itemCropTargetId = null;
+    }
+    function openItemCropModal(fileId) {
+        const file = findFileByPtId(fileId);
+        if (!file) { alert('원본 파일이 없어서 이 표정으로는 크롭할 수 없어요.'); return; }
+        if (!c_col) { alert('미리보기가 준비된 뒤에 다시 눌러주세요.'); return; }
+        // 위쪽 콜라주 미리보기와 같은 크기의 박스를 써야 위치·배율 값이 그대로 호환된다
+        const ref = document.getElementById('colBoxWrap');
+        const cW = ref.clientWidth, cH = ref.clientHeight;
+        const box = document.getElementById('itemCropBox');
+        box.style.width = cW + 'px'; box.style.height = cH + 'px';
+        const prev = itemCropOverrides[fileId];
+        const hasOv = prev && prev.cW === cW && prev.cH === cH;
+        const baseCanvas = hasOv ? prev.canvasData : c_col.getCanvasData();
+        itemCropBaseRotation = hasOv ? (prev.rotation || 0) : (parseInt(document.getElementById('colRotateSlider').value) || 0);
+        itemCropTargetId = fileId;
+        document.getElementById('btnItemCropReset').style.display = hasOv ? '' : 'none';
+        document.getElementById('itemCropModal').classList.add('open');
+
+        if (itemCropper) { itemCropper.destroy(); itemCropper = null; }
+        const img = document.getElementById('itemCropImg');
+        if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+        img.onload = () => {
+            new Cropper(img, {
+                ...BASE_OPTS, rotatable: true,
+                aspectRatio: cW / cH, minContainerWidth: cW, minContainerHeight: cH,
+                wheelZoomRatio: document.getElementById('colFineZoom').checked ? 0.03 : 0.4,
+                ready() {
+                    const inst = this.cropper;
+                    inst.setCropBoxData({ left: 0, top: 0, width: cW, height: cH });
+                    inst.rotateTo(itemCropBaseRotation);
+                    inst.setCanvasData(baseCanvas);
+                    itemCropper = inst;
+                }
+            });
+        };
+        img.dataset.url = URL.createObjectURL(file);
+        img.src = img.dataset.url;
+    }
+    // 표정 하나만 다시 잘라서 목록·최종 미리보기에 반영
+    async function recropCollageItem(fileId) {
+        const file = findFileByPtId(fileId);
+        const item = document.querySelector(`.collage-item[data-id="${fileId}"]`);
+        if (!file || !item || !c_col) return;
+        const wrapEl = document.getElementById('colBoxWrap');
+        const w = parseInt(document.getElementById('colW').value) || 460;
+        const h = document.getElementById('colSquareToggle').checked ? w : (parseInt(document.getElementById('colH').value) || 460);
+        const ov = itemCropOverrides[fileId];
+        const params = ov
+            ? { cW: ov.cW, cH: ov.cH, canvasData: ov.canvasData, rotation: ov.rotation, w, h, fillColor: 'transparent' }
+            : { cW: wrapEl.clientWidth, cH: wrapEl.clientHeight, canvasData: c_col.getCanvasData(), rotation: parseInt(document.getElementById('colRotateSlider').value) || 0, w, h, fillColor: 'transparent' };
+        const canvas = await cropFileToCanvas(file, params);
+        if (!canvas) return;
+        item.querySelector('img').src = canvas.toDataURL();
+        item.classList.toggle('custom-crop', !!ov);
+        await requestRedraw();
+    }
+    // 모든 표정에 적용: 공통 크롭에 반영 (이 표정의 개별 크롭은 해제, 다른 표정의 개별 크롭은 유지)
+    document.getElementById('btnItemCropApply').addEventListener('click', async () => {
+        if (!itemCropper || !c_col) return;
+        const data = itemCropper.getCanvasData();
+        delete itemCropOverrides[itemCropTargetId];
+        closeItemCropModal();
+        c_col.rotateTo(itemCropBaseRotation);
+        c_col.setCanvasData(data);
+        await generateCollagePreview();
+    });
+    // 이 표정만 적용
+    document.getElementById('btnItemCropOnly').addEventListener('click', async () => {
+        if (!itemCropper || !itemCropTargetId) return;
+        const id = itemCropTargetId;
+        const box = document.getElementById('itemCropBox');
+        itemCropOverrides[id] = { canvasData: itemCropper.getCanvasData(), rotation: itemCropBaseRotation, cW: box.clientWidth, cH: box.clientHeight };
+        closeItemCropModal();
+        await recropCollageItem(id);
+    });
+    // 개별 크롭 해제
+    document.getElementById('btnItemCropReset').addEventListener('click', async () => {
+        const id = itemCropTargetId;
+        if (!id) return;
+        delete itemCropOverrides[id];
+        closeItemCropModal();
+        await recropCollageItem(id);
+    });
+    document.getElementById('btnItemCropCancel').addEventListener('click', closeItemCropModal);
 
     // 콜라주 조각을 자동으로 재생성하는 엔진
     let isGeneratingCollage = false;
@@ -2040,7 +2741,10 @@
             const generated = [];
             for (let [idx, file] of f_pt.entries()) {
                 const fileId = f_ptIds[idx];
-                const canvas = await cropFileToCanvas(file, params);
+                const ov = itemCropOverrides[fileId];
+                const useOv = ov && ov.cW === params.cW && ov.cH === params.cH;
+                if (ov && !useOv) delete itemCropOverrides[fileId]; // 칸 비율이 바뀌면 개별 크롭은 해제
+                const canvas = await cropFileToCanvas(file, useOv ? { ...params, canvasData: ov.canvasData, rotation: ov.rotation } : params);
                 if (!canvas) continue;
                 const prev = prevStateById[fileId];
                 generated.push({
@@ -2072,16 +2776,21 @@
     }
 
     // 설정값 변경 시 자동으로 최종 미리보기에 반영
-    ['colCols', 'colTextColor', 'colBgColor', 'colMargin', 'colScenarioName', 'colScenarioSize', 'colCharName', 'colCharSize'].forEach(id => {
+    ['colCols', 'colTextColor', 'colBgColor', 'colMargin', 'colScenarioName', 'colScenarioSize', 'colCharName', 'colCharSize', 'colLabelSize', 'colLabelV', 'colLabelH'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', scheduleAutoPreview);
     });
     document.getElementById('colSideImg').addEventListener('change', () => {
         globalSideScale = 1.0; sideOffsetX = 0; sideOffsetY = 0;
         sideAreaWidth = null; // 새 스탠딩을 넣으면 영역 너비는 원본 비율대로 다시 자동 계산
+        sideAreaHeight = null;
+        if (!sideChangeFromCode) sideFromPtId = null; // 직접 올린 파일이면 '첨부 이미지 선택' 표시 해제
+        sideChangeFromCode = false;
+        updateSideUI();
         scheduleAutoPreview();
     });
     document.getElementById('colVerticalText').addEventListener('change', scheduleAutoPreview);
+    document.getElementById('colSidePosition').addEventListener('change', scheduleAutoPreview);
 
     /* ==================================================
        8-1. 사용자 폰트 업로드
@@ -2148,7 +2857,7 @@
     document.getElementById('btnDownloadCollagePieces').addEventListener('click', async () => {
         const items = document.querySelectorAll('.collage-item');
         if (items.length === 0) {
-            alert('다운로드할 포트레이트가 없습니다. 먼저 반신 스탠딩 파일을 추가해주세요.');
+            alert('다운로드할 포트레이트가 없습니다. 먼저 스탠딩 파일을 추가해주세요.');
             return;
         }
 
