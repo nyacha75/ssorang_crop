@@ -376,6 +376,12 @@
         .preview-stage { text-align: center; margin-bottom: 18px; } /* 조절 바가 아래로 튀어나와도 잘리지 않도록 overflow 없음 */
         .canvas-wrap { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
         #finalCollageCanvas { cursor: grab; }
+        /* '투명' 배경: 미리보기에서만 체크무늬로 표시 (저장 파일은 투명) */
+        .canvas-wrap.bg-transparent #finalCollageCanvas {
+            background-color: #fff;
+            background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
         #finalCollageCanvas:active { cursor: grabbing; }
 
         /* 표정 칸 위에 마우스를 올리면 나타나는 '눌러서 크롭' 표시 + 말풍선 */
@@ -395,13 +401,13 @@
         /* 스탠딩 너비·높이 조절 바: 미리보기에 마우스를 올렸을 때만 스탠딩(반신) 바로 밑에 표시 (위치는 JS에서 계산) */
         .side-width-bar {
             display: none; position: absolute; top: 100%; left: 0; z-index: 6;
-            box-sizing: border-box; width: 300px; padding-top: 8px; /* 위쪽 여백도 마우스 영역에 포함돼서 바까지 이동해도 안 사라짐 */
+            box-sizing: border-box; width: 340px; padding-top: 8px; /* 위쪽 여백도 마우스 영역에 포함돼서 바까지 이동해도 안 사라짐 */
             text-align: left; font-size: 12px; color: #334155;
             opacity: 0; pointer-events: none; transition: opacity .15s;
         }
         .side-width-bar .bar-box {
             display: flex; flex-direction: column; gap: 6px; padding: 8px 12px;
-            background: rgba(255, 255, 255, .97); border: 1px solid var(--line-strong); border-radius: 10px;
+            background: #fff; border: 1px solid var(--line-strong); border-radius: 10px;
             box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
         }
         .canvas-wrap.has-side .side-width-bar, .canvas-wrap.bg-edit .side-width-bar { display: block; }
@@ -413,7 +419,10 @@
         .side-width-bar .bar-row { display: flex; align-items: center; gap: 8px; }
         .side-width-bar .bar-btn { flex: 1; padding: 6px 10px; font-size: 12px; }
         .side-width-bar span { white-space: nowrap; font-weight: 600; }
-        .side-width-bar #sideWidthValue, .side-width-bar #sideHeightValue, .side-width-bar #bgOpacityValue { font-family: ui-monospace, monospace; min-width: 52px; text-align: right; }
+        /* 슬라이더 옆 숫자 입력칸 (직접 입력 가능) */
+        .num-edit { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+        .num-edit input[type="number"] { width: 64px; height: 30px; padding: 0 6px; font-size: 12.5px; text-align: right; }
+        .num-edit i { font-style: normal; font-size: 12px; color: var(--text-3); font-weight: 600; }
 
         /* 최종 미리보기 아래 텍스트 설정 (시나리오명 · 캐릭터 이름) */
         .name-settings {
@@ -425,9 +434,7 @@
         .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
         /* 배경 추가 박스 */
         .bg-settings { padding: 14px 20px; }
-        .bg-toggle { margin: 0; }
-        .bg-body { display: none; margin-top: 14px; }
-        .bg-settings.open .bg-body { display: block; }
+        .bg-body { margin-top: 14px; }
         .seg { display: inline-flex; gap: 4px; padding: 4px; background: #e8ecf3; border-radius: 10px; margin-bottom: 12px; }
         .seg label { margin: 0; cursor: pointer; }
         .seg input { display: none; }
@@ -742,7 +749,7 @@
                         <label class="check has-tip" data-tip="마우스 스크롤의 감도가 올라갑니다." style="margin-bottom: 12px;"><input type="checkbox" id="ptFineZoom"> 느리게 확대</label>
                         <div class="rotate-row subtle">
                             <input type="range" id="portraitRotateSlider" min="-180" max="180" value="0">
-                            <span id="ptRotateValue" class="mono-value">0°</span>
+                            <span class="num-edit"><input type="number" id="ptRotateValue" value="0" min="-180" max="180" step="1"><i>°</i></span>
                             <button class="sub-btn" onclick="rotateManual('pt', -90)" title="-90° 회전">↺ -90°</button>
                             <button class="sub-btn" onclick="rotateManual('pt', 90)" title="+90° 회전">↻ +90°</button>
                             <button class="sub-btn" onclick="resetManual('pt')" title="회전·위치 초기화">🔄 초기화</button>
@@ -794,7 +801,7 @@
                             <label class="check has-tip" data-tip="마우스 스크롤의 감도가 올라갑니다." style="margin-bottom: 12px;"><input type="checkbox" id="colFineZoom"> 느리게 확대</label>
                             <div class="rotate-row subtle">
                                 <input type="range" id="colRotateSlider" min="-180" max="180" value="0">
-                                <span id="colRotateValue" class="mono-value">0°</span>
+                                <span class="num-edit"><input type="number" id="colRotateValue" value="0" min="-180" max="180" step="1"><i>°</i></span>
                                 <button class="sub-btn" onclick="rotateManual('col', -90)" title="-90° 회전">↺ -90°</button>
                                 <button class="sub-btn" onclick="rotateManual('col', 90)" title="+90° 회전">↻ +90°</button>
                                 <button class="sub-btn" onclick="resetManual('col')" title="회전·위치 초기화">🔄 초기화</button>
@@ -861,12 +868,12 @@
                             <div class="bar-row side-only">
                                 <span>스탠딩 너비</span>
                                 <input type="range" id="sideWidthSlider" min="50" max="2000" step="1" value="300">
-                                <span id="sideWidthValue">300px</span>
+                                <span class="num-edit"><input type="number" id="sideWidthValue" value="300" min="50" max="2000" step="1"><i>px</i></span>
                             </div>
                             <div class="bar-row side-only">
                                 <span>스탠딩 높이</span>
                                 <input type="range" id="sideHeightSlider" min="50" max="4000" step="1" value="800">
-                                <span id="sideHeightValue">800px</span>
+                                <span class="num-edit"><input type="number" id="sideHeightValue" value="800" min="50" max="4000" step="1"><i>px</i></span>
                             </div>
                             <div class="bar-row side-only">
                                 <button type="button" id="btnSideAlignBottom" class="sub-btn bar-btn">⤓ 스탠딩 아래로 정렬</button>
@@ -874,7 +881,7 @@
                             <div class="bar-row bg-only">
                                 <span>배경 이미지 투명도</span>
                                 <input type="range" id="bgOpacitySlider" min="0" max="100" step="1" value="40">
-                                <span id="bgOpacityValue">40%</span>
+                                <span class="num-edit"><input type="number" id="bgOpacityValue" value="40" min="0" max="100" step="1"><i>%</i></span>
                             </div>
                             </div>
                         </div>
@@ -931,9 +938,9 @@
                     </details>
                 </div>
 
-                <!-- 배경 추가: 체크하면 박스가 열림 (단색 · 그라데이션 · 이미지) -->
-                <div class="name-settings bg-settings" id="bgSettings">
-                    <label class="check field-title bg-toggle"><input type="checkbox" id="bgEnable"> 배경 추가</label>
+                <!-- 배경 설정: 펼치면 배경이 적용되고(단색 자동 선택), 접으면 해제 -->
+                <details class="name-settings bg-settings collapsible" id="bgSettings">
+                    <summary class="field-title">배경 설정<span class="caret" aria-hidden="true">▼</span></summary>
                     <div class="bg-body">
                         <!-- 배경 이미지 (선택): 색 위에 겹쳐 그려짐 -->
                         <div class="bg-image-pane">
@@ -951,16 +958,16 @@
                         <span class="field-title">배경 색</span>
                         <div class="seg" role="radiogroup">
                             <label class="has-tip" data-tip="흰색 배경"><input type="radio" name="bgMode" value="default"><span>기본</span></label>
-                            <label class="has-tip" data-tip="색 없음 · 저장한 PNG의 빈 곳이 투명해요"><input type="radio" name="bgMode" value="transparent"><span>투명</span></label>
+                            <label><input type="radio" name="bgMode" value="transparent"><span>투명</span></label>
                             <label><input type="radio" name="bgMode" value="solid" checked><span>단색</span></label>
                             <label><input type="radio" name="bgMode" value="gradient"><span>그라데이션</span></label>
                         </div>
                         <div class="bg-pane field-row" data-mode="solid">
-                            <div><label for="bgSolidColor">색</label><input type="color" id="bgSolidColor" value="#d4d4d8"></div>
+                            <div><label for="bgSolidColor">색</label><input type="color" id="bgSolidColor" value="#828282"></div>
                         </div>
                         <div class="bg-pane field-row" data-mode="gradient">
                             <div><label for="bgGradA">시작 색</label><input type="color" id="bgGradA" value="#ffffff"></div>
-                            <div><label for="bgGradB">끝 색</label><input type="color" id="bgGradB" value="#4b5563"></div>
+                            <div><label for="bgGradB">끝 색</label><input type="color" id="bgGradB" value="#404040"></div>
                             <div><label for="bgGradDir">방향</label>
                                 <select id="bgGradDir">
                                     <option value="v" selected>위 → 아래</option>
@@ -971,7 +978,7 @@
                         </div>
                         <p class="hint" style="margin-top: 10px;">미리보기에 마우스를 올리면 나타나는 '배경 설정 조작'을 켜면 배경 이미지를 휠로 크기, 드래그로 위치, 아래 바에서 투명도를 조절할 수 있어요.</p>
                     </div>
-                </div>
+                </details>
 
                 <button id="btnDownloadCollage" class="action-btn">포트레이트 모음집 다운로드</button>
                 <div class="final-actions">
@@ -1145,7 +1152,7 @@
         const rot = getRotateSliderIds(type);
         if (rot) {
             document.getElementById(rot.slider).value = pending.rotation;
-            document.getElementById(rot.value).innerText = `${pending.rotation}°`;
+            document.getElementById(rot.value).value = pending.rotation;
         }
         c.rotateTo(pending.rotation || 0);
 
@@ -1645,6 +1652,27 @@
         });
     });
 
+    // 숫자 입력칸 ↔ 슬라이더 연결: 숫자를 입력하면 범위 안으로 맞춘 뒤 슬라이더를 움직여 같은 동작을 실행
+    [
+        ['ptRotateValue', 'portraitRotateSlider'],
+        ['colRotateValue', 'colRotateSlider'],
+        ['sideWidthValue', 'sideWidthSlider'],
+        ['sideHeightValue', 'sideHeightSlider'],
+        ['bgOpacityValue', 'bgOpacitySlider']
+    ].forEach(([numId, sliderId]) => {
+        const num = document.getElementById(numId);
+        const slider = document.getElementById(sliderId);
+        const apply = () => {
+            if (num.value === '' || isNaN(parseFloat(num.value))) return;
+            const v = Math.min(parseFloat(slider.max), Math.max(parseFloat(slider.min), Math.round(parseFloat(num.value))));
+            slider.value = v;
+            slider.dispatchEvent(new Event('input'));
+        };
+        num.addEventListener('change', apply);                                   // 입력을 마치거나 엔터를 누르면 적용
+        num.addEventListener('keydown', e => { if (e.key === 'Enter') { apply(); num.blur(); } });
+        num.addEventListener('blur', () => { num.value = slider.value; });     // 범위를 벗어난 값은 실제 적용값으로 표시
+    });
+
     // 미리보기 박스 초기 크기
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
@@ -1791,8 +1819,8 @@
         syncCollageOrderToFiles();
 
         if (isFirstLoad) {
-            document.getElementById('portraitRotateSlider').value = 0; document.getElementById('ptRotateValue').innerText = "0°";
-            document.getElementById('colRotateSlider').value = 0; document.getElementById('colRotateValue').innerText = "0°";
+            document.getElementById('portraitRotateSlider').value = 0; document.getElementById('ptRotateValue').value = 0;
+            document.getElementById('colRotateSlider').value = 0; document.getElementById('colRotateValue').value = 0;
             loadCropper('pt'); loadCropper('col');
         } else if (f_ptIds[0] !== wasFirstId) {
             // '기본' 파일이 새로 맨 앞에 오면 미리보기 기준 이미지도 바뀐다
@@ -1842,23 +1870,23 @@
         const valId = type === 'pt' ? 'ptRotateValue' : 'colRotateValue';
         const sld = document.getElementById(sldId);
         let v = parseInt(sld.value) + deg; if(v > 180) v -= 360; if(v < -180) v += 360;
-        sld.value = v; document.getElementById(valId).innerText = `${v}°`; c.rotateTo(v);
+        sld.value = v; document.getElementById(valId).value = v; c.rotateTo(v);
         if (type === 'col') scheduleCollageAutoGenerate();
     };
     window.resetManual = (type) => {
         let c = type === 'pt' ? c_pt : c_col; if(!c) return;
         const sldId = type === 'pt' ? 'portraitRotateSlider' : 'colRotateSlider';
         const valId = type === 'pt' ? 'ptRotateValue' : 'colRotateValue';
-        document.getElementById(sldId).value = 0; document.getElementById(valId).innerText = "0°";
+        document.getElementById(sldId).value = 0; document.getElementById(valId).value = 0;
         c.reset();
         if (type === 'col') scheduleCollageAutoGenerate();
     };
     document.getElementById('portraitRotateSlider').addEventListener('input', e => {
-        document.getElementById('ptRotateValue').innerText = `${e.target.value}°`;
+        document.getElementById('ptRotateValue').value = e.target.value;
         if(c_pt) c_pt.rotateTo(parseInt(e.target.value));
     });
     document.getElementById('colRotateSlider').addEventListener('input', e => {
-        document.getElementById('colRotateValue').innerText = `${e.target.value}°`;
+        document.getElementById('colRotateValue').value = e.target.value;
         if(c_col) c_col.rotateTo(parseInt(e.target.value));
         scheduleCollageAutoGenerate();
     });
@@ -2632,13 +2660,13 @@
     // 미리보기에 마우스를 올리면 나타나는 "스탠딩 영역 너비" 슬라이더
     document.getElementById('sideWidthSlider').addEventListener('input', async (e) => {
         sideAreaWidth = parseInt(e.target.value) || null;
-        document.getElementById('sideWidthValue').innerText = `${e.target.value}px`;
+        document.getElementById('sideWidthValue').value = e.target.value;
         await requestRedraw();
     });
 
     document.getElementById('sideHeightSlider').addEventListener('input', async (e) => {
         sideAreaHeight = parseInt(e.target.value) || null;
-        document.getElementById('sideHeightValue').innerText = `${e.target.value}px`;
+        document.getElementById('sideHeightValue').value = e.target.value;
         await requestRedraw();
     });
 
@@ -2692,14 +2720,15 @@
                 wrap.classList.toggle('has-side', !!sideImg);
                 wrap.classList.toggle('has-bg', bgState.enabled);
                 wrap.classList.toggle('bg-edit', bgState.enabled && bgState.edit);
+                wrap.classList.toggle('bg-transparent', bgState.enabled && bgState.mode === 'transparent');
             }
             if (sideImg) {
                 const slider = document.getElementById('sideWidthSlider');
                 slider.value = sideAreaW;
-                document.getElementById('sideWidthValue').innerText = `${sideAreaW}px`;
+                document.getElementById('sideWidthValue').value = Math.round(sideAreaW);
                 const hSlider = document.getElementById('sideHeightSlider');
                 hSlider.value = sideAreaH;
-                document.getElementById('sideHeightValue').innerText = `${sideAreaH}px`;
+                document.getElementById('sideHeightValue').value = Math.round(sideAreaH);
             }
         }
 
@@ -2859,7 +2888,7 @@
             const viewW = visibleCvs.clientWidth || visibleCvs.width;
             const anchorX = sideImg ? sideX * k : 0;
             const bar = document.getElementById('sideWidthBar');
-            const barW = Math.max(260, sideImg ? sideAreaW * k : 0);
+            const barW = Math.max(340, sideImg ? sideAreaW * k : 0); // 숫자 입력칸까지 들어가는 최소 너비
             bar.style.left = Math.max(0, Math.min(anchorX, viewW - barW)) + 'px';
             bar.style.width = barW + 'px';
             document.getElementById('bgEditToggleWrap').style.left = (anchorX + 8) + 'px';
@@ -3276,14 +3305,13 @@
     }
     function syncBgUI() {
         const box = document.getElementById('bgSettings');
-        box.classList.toggle('open', bgState.enabled);
+        if (box.open !== bgState.enabled) box.open = bgState.enabled;
         box.dataset.mode = bgState.mode;
-        document.getElementById('bgEnable').checked = bgState.enabled;
         document.querySelectorAll('input[name="bgMode"]').forEach(r => r.checked = r.value === bgState.mode);
         document.getElementById('bgEditToggle').checked = bgState.edit;
         const pct = Math.round(bgState.opacity * 100);
         document.getElementById('bgOpacitySlider').value = pct;
-        document.getElementById('bgOpacityValue').innerText = `${pct}%`;
+        document.getElementById('bgOpacityValue').value = pct;
     }
     const resetBgTransform = () => { bgState.scale = 1; bgState.offX = 0; bgState.offY = 0; };
     // 배경 이미지 지정 (첨부 이미지에서 고르거나 지울 때)
@@ -3301,9 +3329,13 @@
         document.querySelectorAll('#bgPicker .side-thumb').forEach(b => b.classList.toggle('on', !!bgState.img && b.dataset.id === bgState.fromPtId));
     }
 
-    document.getElementById('bgEnable').addEventListener('change', e => {
-        bgState.enabled = e.target.checked;
-        if (!bgState.enabled) bgState.edit = false;
+    // 배경 설정을 펼치면 배경 적용 + 단색 자동 선택, 접으면 배경 해제
+    document.getElementById('bgSettings').addEventListener('toggle', e => {
+        const open = e.currentTarget.open;
+        if (open === bgState.enabled) return; // 코드에서 맞춘 경우(백업 불러오기 등)는 그대로
+        bgState.enabled = open;
+        if (open) bgState.mode = 'solid';
+        else bgState.edit = false;
         syncBgUI(); scheduleAutoPreview();
     });
     document.querySelectorAll('input[name="bgMode"]').forEach(r => r.addEventListener('change', e => {
@@ -3325,7 +3357,7 @@
     });
     document.getElementById('bgOpacitySlider').addEventListener('input', e => {
         bgState.opacity = (parseInt(e.target.value) || 0) / 100;
-        document.getElementById('bgOpacityValue').innerText = `${e.target.value}%`;
+        document.getElementById('bgOpacityValue').value = e.target.value;
         requestRedraw();
     });
     syncBgUI();
