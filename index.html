@@ -421,7 +421,13 @@
         .side-width-bar span { white-space: nowrap; font-weight: 600; }
         /* 슬라이더 옆 숫자 입력칸 (직접 입력 가능) */
         .num-edit { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; }
-        .num-edit input[type="number"] { width: 64px; height: 30px; padding: 0 6px; font-size: 12.5px; text-align: right; }
+        /* 4자리 숫자까지 잘리지 않게: 위아래 화살표를 숨기고 너비 확보 */
+        .num-edit input[type="number"] {
+            width: 76px; height: 30px; padding: 0 8px; font-size: 12.5px; text-align: right;
+            -moz-appearance: textfield; appearance: textfield;
+        }
+        .num-edit input[type="number"]::-webkit-outer-spin-button,
+        .num-edit input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .num-edit i { font-style: normal; font-size: 12px; color: var(--text-3); font-weight: 600; }
 
         /* 최종 미리보기 아래 텍스트 설정 (시나리오명 · 캐릭터 이름) */
@@ -938,13 +944,13 @@
                     </details>
                 </div>
 
-                <!-- 배경 설정: 펼치면 배경이 적용되고(단색 자동 선택), 접으면 해제 -->
+                <!-- 배경 설정: 처음 펼치면 배경이 적용되고(단색 자동 선택), 접어도 유지 -->
                 <details class="name-settings bg-settings collapsible" id="bgSettings">
                     <summary class="field-title">배경 설정<span class="caret" aria-hidden="true">▼</span></summary>
                     <div class="bg-body">
                         <!-- 배경 이미지 (선택): 색 위에 겹쳐 그려짐 -->
                         <div class="bg-image-pane">
-                            <span class="field-title">배경 이미지 <span class="optional">(선택 · 아래 배경 색 위에 겹쳐요)</span></span>
+                            <span class="field-title">배경 이미지 <span class="optional">(선택)</span></span>
                             <div id="bgPickerWrap" style="display: none; margin-bottom: 12px;">
                                 <label style="margin-bottom: 8px;">첨부된 이미지에서 고르기</label>
                                 <div class="side-picker" id="bgPicker"></div>
@@ -2747,12 +2753,15 @@
 
         if (sideImg) {
             ctx.save();
-            // 스탠딩 영역 밖으로 이미지가 삐져나가지 않도록 클리핑
+            // 세로로만 스탠딩 영역 높이에 맞춰 자르고, 가로는 자르지 않는다
+            // (영역 너비를 줄여도 이미지가 잘리지 않고 포트레이트 칸 뒤로 이어짐 — 칸이 위에 그려짐)
             ctx.beginPath();
-            const clipX = sideOnRight ? sideX - gap / 2 : 0;
-            ctx.rect(clipX, 0, sideX + sideAreaW + gap / 2 - clipX, Math.min(cvs.height, sideAreaH + gap * 2));
+            ctx.rect(0, 0, cvs.width, Math.min(cvs.height, sideAreaH + gap * 2));
             ctx.clip();
-            ctx.translate(sideX + sideAreaW / 2 + sideOffsetX, gap + sideBaseH / 2 + sideOffsetY);
+            // 바깥쪽 끝 기준으로 배치: 좌측 배치면 이미지 왼쪽 끝을 영역 왼쪽에, 우측 배치면 오른쪽 끝을 영역 오른쪽에 맞춘다
+            // (영역 너비를 줄여도 캔버스 밖으로 잘려 나가지 않고, 넘치는 부분은 포트레이트 칸 뒤로 이어짐)
+            const sideCenterX = sideOnRight ? sideX + sideAreaW - sideBaseW / 2 : sideX + sideBaseW / 2;
+            ctx.translate(sideCenterX + sideOffsetX, gap + sideBaseH / 2 + sideOffsetY);
             ctx.scale(globalSideScale, globalSideScale);
             ctx.drawImage(sideImg, -sideBaseW / 2, -sideBaseH / 2, sideBaseW, sideBaseH);
             ctx.restore();
@@ -2764,10 +2773,6 @@
             side: sideImg ? { x: sideX, y: gap, w: sideAreaW, h: sideAreaH } : null // 스탠딩 영역 (휠 확대 판정용)
         };
 
-        if (!bgState.enabled) { // 배경이 있으면 포트레이트 사이로 배경이 보이도록 흰색으로 덮지 않음
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(offsetX - gap / 2, 0, gridW + gap, cvs.height);
-        }
 
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
@@ -3305,7 +3310,6 @@
     }
     function syncBgUI() {
         const box = document.getElementById('bgSettings');
-        if (box.open !== bgState.enabled) box.open = bgState.enabled;
         box.dataset.mode = bgState.mode;
         document.querySelectorAll('input[name="bgMode"]').forEach(r => r.checked = r.value === bgState.mode);
         document.getElementById('bgEditToggle').checked = bgState.edit;
@@ -3329,13 +3333,11 @@
         document.querySelectorAll('#bgPicker .side-thumb').forEach(b => b.classList.toggle('on', !!bgState.img && b.dataset.id === bgState.fromPtId));
     }
 
-    // 배경 설정을 펼치면 배경 적용 + 단색 자동 선택, 접으면 배경 해제
+    // 배경 설정을 처음 펼치면 배경 적용 + 단색 자동 선택. 접어도 배경은 그대로 유지 (없애려면 '기본' 선택)
     document.getElementById('bgSettings').addEventListener('toggle', e => {
-        const open = e.currentTarget.open;
-        if (open === bgState.enabled) return; // 코드에서 맞춘 경우(백업 불러오기 등)는 그대로
-        bgState.enabled = open;
-        if (open) bgState.mode = 'solid';
-        else bgState.edit = false;
+        if (!e.currentTarget.open || bgState.enabled) return;
+        bgState.enabled = true;
+        bgState.mode = 'solid';
         syncBgUI(); scheduleAutoPreview();
     });
     document.querySelectorAll('input[name="bgMode"]').forEach(r => r.addEventListener('change', e => {
