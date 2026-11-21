@@ -110,7 +110,9 @@
             background: var(--surface); border: 2px dashed var(--line-strong); border-radius: var(--radius);
             padding: 24px; text-align: center; transition: border-color .2s, background .2s;
         }
+        .dropzone { cursor: pointer; } /* 빈 곳 어디를 눌러도 파일 선택 창이 열림 */
         .dropzone:hover { border-color: var(--primary-line); background: #fbfdff; }
+        .dropzone .file-list-container { cursor: default; }
         .dropzone-icon {
             width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 12px; display: grid; place-items: center;
             background: var(--primary-soft); font-size: 22px;
@@ -333,8 +335,6 @@
         }
         .side-thumb:hover { border-color: var(--primary-line); }
         .side-thumb.on { border-color: var(--primary); box-shadow: var(--ring); }
-        /* 선택한 썸네일에는 미리보기 속 스탠딩 영역(휠 확대·드래그 반영)을 그대로 보여준다 */
-        .side-thumb-live { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
         .side-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; pointer-events: none; }
 
         .collage-preview-wrapper { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line); }
@@ -411,6 +411,7 @@
         .canvas-wrap.has-side:hover .side-width-bar,
         .canvas-wrap.has-side .side-width-bar:focus-within { opacity: 1; pointer-events: auto; }
         .side-width-bar .bar-row { display: flex; align-items: center; gap: 8px; }
+        .side-width-bar .bar-btn { flex: 1; padding: 6px 10px; font-size: 12px; }
         .side-width-bar span { white-space: nowrap; font-weight: 600; }
         .side-width-bar #sideWidthValue, .side-width-bar #sideHeightValue, .side-width-bar #bgOpacityValue { font-family: ui-monospace, monospace; min-width: 52px; text-align: right; }
 
@@ -438,7 +439,7 @@
         .bg-pane { display: none; }
         .bg-settings[data-mode="solid"] .bg-pane[data-mode="solid"],
         .bg-settings[data-mode="gradient"] .bg-pane[data-mode="gradient"] { display: flex; }
-        .bg-settings[data-mode="image"] .bg-pane[data-mode="image"] { display: block; }
+        .bg-image-pane { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); } /* 이미지가 색보다 위(앞)에 표시 */
         .bg-pane .input-group input[type="file"] { flex: 1; }
 
         /* 미리보기 위 '배경 설정 조작' 체크박스 (배경을 추가했을 때, 마우스를 올리면 스탠딩 위쪽에 표시) */
@@ -867,10 +868,13 @@
                                 <input type="range" id="sideHeightSlider" min="50" max="4000" step="1" value="800">
                                 <span id="sideHeightValue">800px</span>
                             </div>
+                            <div class="bar-row side-only">
+                                <button type="button" id="btnSideAlignBottom" class="sub-btn bar-btn">⤓ 스탠딩 아래로 정렬</button>
+                            </div>
                             <div class="bar-row bg-only">
-                                <span>배경 투명도</span>
-                                <input type="range" id="bgOpacitySlider" min="0" max="100" step="1" value="100">
-                                <span id="bgOpacityValue">100%</span>
+                                <span>배경 이미지 투명도</span>
+                                <input type="range" id="bgOpacitySlider" min="0" max="100" step="1" value="40">
+                                <span id="bgOpacityValue">40%</span>
                             </div>
                             </div>
                         </div>
@@ -931,17 +935,30 @@
                 <div class="name-settings bg-settings" id="bgSettings">
                     <label class="check field-title bg-toggle"><input type="checkbox" id="bgEnable"> 배경 추가</label>
                     <div class="bg-body">
+                        <!-- 배경 이미지 (선택): 색 위에 겹쳐 그려짐 -->
+                        <div class="bg-image-pane">
+                            <span class="field-title">배경 이미지 <span class="optional">(선택 · 아래 배경 색 위에 겹쳐요)</span></span>
+                            <div id="bgPickerWrap" style="display: none; margin-bottom: 12px;">
+                                <label style="margin-bottom: 8px;">첨부된 이미지에서 고르기</label>
+                                <div class="side-picker" id="bgPicker"></div>
+                            </div>
+                            <label for="bgImgFile">직접 올리기</label>
+                            <div class="input-group">
+                                <input type="file" id="bgImgFile" accept="image/*">
+                                <button type="button" id="btnBgReset" class="sub-btn fit">위치·크기 초기화</button>
+                            </div>
+                        </div>
+                        <span class="field-title">배경 색</span>
                         <div class="seg" role="radiogroup">
                             <label><input type="radio" name="bgMode" value="solid" checked><span>단색</span></label>
                             <label><input type="radio" name="bgMode" value="gradient"><span>그라데이션</span></label>
-                            <label><input type="radio" name="bgMode" value="image"><span>이미지</span></label>
                         </div>
                         <div class="bg-pane field-row" data-mode="solid">
-                            <div><label for="bgSolidColor">배경 색</label><input type="color" id="bgSolidColor" value="#fdf2f8"></div>
+                            <div><label for="bgSolidColor">색</label><input type="color" id="bgSolidColor" value="#d4d4d8"></div>
                         </div>
                         <div class="bg-pane field-row" data-mode="gradient">
-                            <div><label for="bgGradA">시작 색</label><input type="color" id="bgGradA" value="#e0f2fe"></div>
-                            <div><label for="bgGradB">끝 색</label><input type="color" id="bgGradB" value="#fce7f3"></div>
+                            <div><label for="bgGradA">시작 색</label><input type="color" id="bgGradA" value="#ffffff"></div>
+                            <div><label for="bgGradB">끝 색</label><input type="color" id="bgGradB" value="#4b5563"></div>
                             <div><label for="bgGradDir">방향</label>
                                 <select id="bgGradDir">
                                     <option value="v" selected>위 → 아래</option>
@@ -950,13 +967,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="bg-pane" data-mode="image">
-                            <div class="input-group">
-                                <input type="file" id="bgImgFile" accept="image/*">
-                                <button type="button" id="btnBgReset" class="sub-btn fit">위치·크기 초기화</button>
-                            </div>
-                        </div>
-                        <p class="hint" style="margin-top: 10px;">미리보기에 마우스를 올리면 나타나는 '배경 설정 조작'을 켜면 휠로 크기, 드래그로 위치, 아래 바에서 투명도를 조절할 수 있어요.</p>
+                        <p class="hint" style="margin-top: 10px;">미리보기에 마우스를 올리면 나타나는 '배경 설정 조작'을 켜면 배경 이미지를 휠로 크기, 드래그로 위치, 아래 바에서 투명도를 조절할 수 있어요.</p>
                     </div>
                 </div>
 
@@ -1090,8 +1101,9 @@
     // 2-2 배경 추가 (단색 · 그라데이션 · 이미지)
     const bgState = {
         enabled: false, mode: 'solid',
-        scale: 1, offX: 0, offY: 0, opacity: 1,   // 이미지 크기·위치, 배경 투명도
+        scale: 1, offX: 0, offY: 0, opacity: 0.4,   // 배경 이미지 크기·위치·투명도 (mode: 색 레이어 'solid' | 'gradient')
         img: null, file: null,                     // 불러온 배경 이미지
+        fromPtId: null,                            // 첨부된 이미지 중에서 고른 배경의 파일 ID
         edit: false                                // '배경 설정 조작' 켜짐 (휠·드래그가 배경에 적용)
     };
 
@@ -1486,33 +1498,60 @@
     document.getElementById('toast').addEventListener('click', e => e.currentTarget.classList.remove('show'));
 
     // 추가로 삽입할 스탠딩: 첨부된 이미지 중에서 고르기
-    function renderSidePicker() {
-        const wrap = document.getElementById('colSidePickerWrap');
-        const box = document.getElementById('colSidePicker');
-        sidePickUrls.forEach(u => URL.revokeObjectURL(u));
-        sidePickUrls = [];
+    // 썸네일 이미지: 2-2에서 크롭된 표정 이미지(이름·순서 수정 카드와 동일)를 쓰고, 아직 없으면 원본 파일을 쓴다
+    function getPickerThumbSrc(id, file) {
+        const cropped = document.querySelector(`.collage-item[data-id="${id}"] img`);
+        if (cropped && cropped.src) return cropped.src;
+        const url = URL.createObjectURL(file);
+        sidePickUrls.push(url);
+        return url;
+    }
+    // 2-2 크롭이 바뀌면 두 고르기 목록의 썸네일도 같은 크롭으로 갱신
+    function updatePickerThumbs() {
+        document.querySelectorAll('#colSidePicker .side-thumb, #bgPicker .side-thumb').forEach(b => {
+            const cropped = document.querySelector(`.collage-item[data-id="${b.dataset.id}"] img`);
+            const img = b.querySelector('img');
+            if (cropped && cropped.src && img.src !== cropped.src) img.src = cropped.src;
+        });
+    }
+    // 고르기 목록(스탠딩 · 배경) 공통으로 썸네일 버튼 만들기
+    function buildPickerThumbs(box, onPick) {
         box.innerHTML = '';
         const entries = f_pt.map((f, i) => ({ f, id: f_ptIds[i] })).filter(e => e.f);
-        wrap.style.display = entries.length ? 'block' : 'none';
         entries.forEach(({ f, id }) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = 'side-thumb';
             b.dataset.id = id;
             b.title = f.name;
-            const url = URL.createObjectURL(f);
-            sidePickUrls.push(url);
             const img = document.createElement('img');
-            img.src = url;
+            img.src = getPickerThumbSrc(id, f);
             b.appendChild(img);
-            b.onclick = () => {
-                if (sideFromPtId === id) { setSideImageFile(null, null); return; }
-                const file = findFileByPtId(id);
-                if (file) setSideImageFile(file, id);
-            };
+            b.onclick = () => onPick(id);
             box.appendChild(b);
         });
+        return entries.length;
+    }
+
+    function renderSidePicker() {
+        sidePickUrls.forEach(u => URL.revokeObjectURL(u));
+        sidePickUrls = [];
+        // 추가로 삽입할 스탠딩
+        const count = buildPickerThumbs(document.getElementById('colSidePicker'), id => {
+            if (sideFromPtId === id) { setSideImageFile(null, null); return; }
+            const file = findFileByPtId(id);
+            if (file) setSideImageFile(file, id);
+        });
+        document.getElementById('colSidePickerWrap').style.display = count ? 'block' : 'none';
+        // 배경 이미지
+        buildPickerThumbs(document.getElementById('bgPicker'), async id => {
+            if (bgState.fromPtId === id) { await setBgImageFile(null, null); return; }
+            const file = findFileByPtId(id);
+            if (file) await setBgImageFile(file, id);
+        });
+        document.getElementById('bgPickerWrap').style.display = count ? 'block' : 'none';
         updateSideUI();
+        updateBgPickerUI();
     }
     function setSideImageFile(file, fromPtId) {
         const input = document.getElementById('colSideImg');
@@ -1593,6 +1632,15 @@
         if (!chk || !chk.checked) return;
         chk.checked = false;
         chk.dispatchEvent(new Event('change'));
+    });
+
+    // 파일 불러오기 영역: 빈 곳 어디를 눌러도 파일 선택 창이 열리게 (파일 목록·버튼·입력칸 자체는 제외)
+    document.querySelectorAll('.dropzone').forEach(zone => {
+        const input = zone.querySelector('input[type="file"]');
+        zone.addEventListener('click', e => {
+            if (e.target.closest('input, button, .file-list-container')) return;
+            input.click();
+        });
     });
 
     // 미리보기 박스 초기 크기
@@ -2306,17 +2354,18 @@
             const bgData = data.settings.background;
             if (bgData) {
                 bgState.enabled = !!bgData.enabled;
-                bgState.mode = ['solid', 'gradient', 'image'].includes(bgData.mode) ? bgData.mode : 'solid';
+                bgState.mode = bgData.mode === 'gradient' ? 'gradient' : 'solid'; // 예전 백업의 'image'는 단색 + 이미지로
                 if (bgData.solid) document.getElementById('bgSolidColor').value = bgData.solid;
                 if (bgData.gradA) document.getElementById('bgGradA').value = bgData.gradA;
                 if (bgData.gradB) document.getElementById('bgGradB').value = bgData.gradB;
                 if (bgData.gradDir) document.getElementById('bgGradDir').value = bgData.gradDir;
                 bgState.scale = bgData.scale || 1; bgState.offX = bgData.offX || 0; bgState.offY = bgData.offY || 0;
-                bgState.opacity = typeof bgData.opacity === 'number' ? bgData.opacity : 1;
+                bgState.opacity = typeof bgData.opacity === 'number' ? bgData.opacity : 0.4;
             } else {
                 bgState.enabled = false;
             }
             bgState.edit = false;
+            bgState.fromPtId = null;
             if (data.bgImage) {
                 const bgFile = dataURLToFile(data.bgImage, 'background_backup.png');
                 const dtBg = new DataTransfer(); dtBg.items.add(bgFile);
@@ -2382,6 +2431,7 @@
             });
 
             document.getElementById('collagePreviewArea').style.display = 'block';
+            updatePickerThumbs();
             await requestRedraw();
 
         } catch (err) {
@@ -2430,7 +2480,7 @@
         cvs.addEventListener('wheel', async (e) => {
             // '배경 설정 조작' 중에는 휠이 배경 이미지 크기를 조절
             if (bgEditing()) {
-                if (bgState.mode !== 'image' || !bgState.img) return;
+                if (!bgState.img) return;
                 e.preventDefault();
                 bgState.scale = Math.max(0.1, Math.min(10, bgState.scale + (e.deltaY > 0 ? -0.05 : 0.05)));
                 await requestRedraw();
@@ -2447,7 +2497,7 @@
         let dragTarget = 'side'; // 'side' | 'bg'
         cvs.addEventListener('mousedown', (e) => {
             if (bgEditing()) {
-                if (bgState.mode !== 'image' || !bgState.img) return;
+                if (!bgState.img) return;
                 dragTarget = 'bg';
             } else {
                 if(!document.getElementById('colSideImg').files[0]) return;
@@ -2530,7 +2580,7 @@
         };
         cvs.addEventListener('mousemove', (e) => {
             if (isDragging) { hideCellHover(); return; }
-            if (bgEditing()) { hideCellHover(); cvs.style.cursor = (bgState.mode === 'image' && bgState.img) ? 'move' : 'default'; return; }
+            if (bgEditing()) { hideCellHover(); cvs.style.cursor = bgState.img ? 'move' : 'default'; return; }
             const idx = cellAt(e);
             if (idx >= 0) showCellHover(idx); else hideCellHover();
             cvs.style.cursor = idx >= 0 ? 'pointer' : (document.getElementById('colSideImg').files[0] ? 'grab' : 'default');
@@ -2538,6 +2588,44 @@
         cvs.addEventListener('mouseleave', hideCellHover);
         cvs.addEventListener('mousedown', hideCellHover);
     })();
+
+    // 스탠딩 아래로 정렬: 이미지의 보이는 부분(투명 여백 제외) 아래 끝이 스탠딩 영역 바닥에 딱 붙도록 세로 위치만 맞춘다
+    const sideContentBottomCache = new WeakMap(); // File → 보이는 픽셀의 아래 끝 비율(0~1)
+    async function getSideContentBottomRatio(file) {
+        if (sideContentBottomCache.has(file)) return sideContentBottomCache.get(file);
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        await new Promise(r => { img.onload = r; img.onerror = r; img.src = url; });
+        URL.revokeObjectURL(url);
+        let ratio = 1;
+        if (img.naturalWidth) {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            const g = c.getContext('2d');
+            g.drawImage(img, 0, 0);
+            const data = g.getImageData(0, 0, c.width, c.height).data;
+            let bottom = -1;
+            for (let y = c.height - 1; y >= 0 && bottom < 0; y--) {
+                for (let x = 0; x < c.width; x++) {
+                    if (data[(y * c.width + x) * 4 + 3] > 10) { bottom = y; break; }
+                }
+            }
+            if (bottom >= 0) ratio = (bottom + 1) / c.height;
+        }
+        sideContentBottomCache.set(file, ratio);
+        return ratio;
+    }
+    document.getElementById('btnSideAlignBottom').addEventListener('click', async () => {
+        const file = document.getElementById('colSideImg').files[0];
+        const S = lastCollageLayout && lastCollageLayout.side;
+        if (!file || !S) return;
+        const ratio = await getSideContentBottomRatio(file);
+        const H = S.h, k = globalSideScale;
+        // 그릴 때 이미지 중심 y = gap + H/2 + sideOffsetY, 표시 높이 = H*k
+        // 보이는 아래 끝 = 중심 - H*k/2 + ratio*H*k  →  이것이 영역 바닥(gap + H)이 되도록
+        sideOffsetY = H / 2 + H * k / 2 - ratio * H * k;
+        await requestRedraw();
+    });
 
     // 미리보기에 마우스를 올리면 나타나는 "스탠딩 영역 너비" 슬라이더
     document.getElementById('sideWidthSlider').addEventListener('input', async (e) => {
@@ -2636,8 +2724,6 @@
             ctx.drawImage(sideImg, -sideBaseW / 2, -sideBaseH / 2, sideBaseW, sideBaseH);
             ctx.restore();
         }
-        // 선택한 '첨부 이미지' 썸네일도 미리보기와 같은 확대·위치로 보이게 (이름 글자를 그리기 전 상태)
-        if (!isDownload) updateSideThumbLive(sideImg ? cvs : null, sideX, gap, sideAreaW, sideAreaH);
 
         const offsetX = gap + (sideImg && !sideOnRight ? sideAreaW + gap : 0);
         if (!isDownload) lastCollageLayout = {
@@ -2958,6 +3044,7 @@
         if (!canvas) return;
         item.querySelector('img').src = canvas.toDataURL();
         item.classList.toggle('custom-crop', !!ov);
+        updatePickerThumbs();
         await requestRedraw();
     }
     // 모든 표정에 적용: 공통 크롭에 반영 (이 표정의 개별 크롭은 해제, 다른 표정의 개별 크롭은 유지)
@@ -3068,6 +3155,7 @@
             await Promise.all(ordered.map(g => { const im = new Image(); im.src = g.src; return im.decode().catch(() => {}); }));
             gridArea.innerHTML = '';
             ordered.forEach(g => createCollageItem(g.src, g.name, g.fileId, g.blindMode, g.nameOff));
+            updatePickerThumbs();
 
             await requestRedraw();
         } catch (e) {
@@ -3148,7 +3236,7 @@
     // ===== 배경 추가 =====
     function drawCollageBackground(ctx, W, H) {
         ctx.save();
-        ctx.globalAlpha = bgState.opacity;
+        // 1) 색 레이어: 단색 또는 그라데이션
         if (bgState.mode === 'solid') {
             ctx.fillStyle = document.getElementById('bgSolidColor').value;
             ctx.fillRect(0, 0, W, H);
@@ -3161,8 +3249,10 @@
             g.addColorStop(1, document.getElementById('bgGradB').value);
             ctx.fillStyle = g;
             ctx.fillRect(0, 0, W, H);
-        } else if (bgState.mode === 'image' && bgState.img) {
-            // 기본은 캔버스를 꽉 채우는 크기(cover), 휠로 배율·드래그로 위치 조절
+        }
+        // 2) 이미지 레이어 (선택): 색 위에 겹침. 기본은 캔버스를 꽉 채우는 크기(cover), 휠로 배율·드래그로 위치, 투명도 조절
+        if (bgState.img) {
+            ctx.globalAlpha = bgState.opacity;
             const im = bgState.img;
             const base = Math.max(W / im.naturalWidth, H / im.naturalHeight);
             const dw = im.naturalWidth * base * bgState.scale, dh = im.naturalHeight * base * bgState.scale;
@@ -3192,6 +3282,20 @@
         document.getElementById('bgOpacityValue').innerText = `${pct}%`;
     }
     const resetBgTransform = () => { bgState.scale = 1; bgState.offX = 0; bgState.offY = 0; };
+    // 배경 이미지 지정 (첨부 이미지에서 고르거나 지울 때)
+    async function setBgImageFile(file, fromPtId) {
+        const input = document.getElementById('bgImgFile');
+        if (file) { const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; }
+        else input.value = '';
+        bgState.fromPtId = fromPtId || null;
+        await loadBgImageFile(file);
+        resetBgTransform();
+        updateBgPickerUI();
+        scheduleAutoPreview();
+    }
+    function updateBgPickerUI() {
+        document.querySelectorAll('#bgPicker .side-thumb').forEach(b => b.classList.toggle('on', !!bgState.img && b.dataset.id === bgState.fromPtId));
+    }
 
     document.getElementById('bgEnable').addEventListener('change', e => {
         bgState.enabled = e.target.checked;
@@ -3204,8 +3308,10 @@
     }));
     ['bgSolidColor', 'bgGradA', 'bgGradB', 'bgGradDir'].forEach(id => document.getElementById(id).addEventListener('input', scheduleAutoPreview));
     document.getElementById('bgImgFile').addEventListener('change', async e => {
+        bgState.fromPtId = null; // 직접 올린 파일이면 '첨부 이미지 선택' 표시 해제
         await loadBgImageFile(e.target.files[0]);
         resetBgTransform();
+        updateBgPickerUI();
         scheduleAutoPreview();
     });
     document.getElementById('btnBgReset').addEventListener('click', () => { resetBgTransform(); scheduleAutoPreview(); });
@@ -3219,22 +3325,6 @@
         requestRedraw();
     });
     syncBgUI();
-
-    // 선택된 스탠딩 썸네일에 미리보기 속 스탠딩 영역을 축소해서 그린다 (정사각형, 위쪽 기준으로 채움)
-    function updateSideThumbLive(src, sx, sy, sw, sh) {
-        const thumb = src ? document.querySelector('#colSidePicker .side-thumb.on') : null;
-        document.querySelectorAll('#colSidePicker .side-thumb-live').forEach(c => { if (c.parentElement !== thumb) c.remove(); });
-        if (!thumb || sw <= 0 || sh <= 0) return;
-        let c = thumb.querySelector('.side-thumb-live');
-        if (!c) { c = document.createElement('canvas'); c.className = 'side-thumb-live'; thumb.appendChild(c); }
-        const size = Math.max(1, Math.round(thumb.clientWidth * (window.devicePixelRatio || 1)));
-        c.width = size; c.height = size;
-        const g = c.getContext('2d');
-        g.fillStyle = '#ffffff';
-        g.fillRect(0, 0, size, size);
-        const k = Math.max(size / sw, size / sh);
-        g.drawImage(src, sx, sy, sw, sh, (size - sw * k) / 2, 0, sw * k, sh * k);
-    }
 
     // 첨부 파일 목록 순서에 맞춰 2-2 표정 목록(→ 최종 미리보기) 순서를 다시 정렬
     function syncCollageOrderToFiles() {
