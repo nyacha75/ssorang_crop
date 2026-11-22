@@ -999,7 +999,7 @@
                     <details class="collapsible name-settings-sub">
                         <summary class="field-title">텍스트 추가 설정<span class="caret" aria-hidden="true">▼</span></summary>
                         <div class="field-row" style="margin-top: 12px;">
-                            <div><label for="colLabelSize">표정 이름 크기</label><input type="number" id="colLabelSize" value="55" min="1" class="sm" title="비우거나 자르기 크기를 바꾸면 자동 크기로 다시 맞춰져요"></div>
+                            <div><label for="colLabelSize">표정 이름 크기</label><input type="number" id="colLabelSize" value="55" min="1" class="sm"></div>
                             <div><label for="colLabelV">세로 위치</label>
                                 <select id="colLabelV">
                                     <option value="bottom" selected>하단</option>
@@ -1014,8 +1014,9 @@
                                 </select>
                             </div>
                             <!-- 테두리 두께(px)·색: 시나리오명·캐릭터명·표정 이름 모두에 적용. 비우면 글자 크기에 맞춘 자동 두께 -->
-                            <div><label for="colStrokeWidth">테두리 두께 (px)</label><input type="number" id="colStrokeWidth" value="" placeholder="자동" min="0" max="200" step="1" class="sm" title="비우면 글자 크기에 맞춘 자동 두께, 0이면 테두리 없음"></div>
+                            <div class="has-tip" data-tip="0: 테두리 제거 / 기본값: 12"><label for="colStrokeWidth">테두리 두께 (px)</label><input type="number" id="colStrokeWidth" value="" placeholder="12" min="0" max="200" step="1" class="sm"></div>
                             <div><label for="colStrokeColor">테두리 색</label><input type="color" id="colStrokeColor" value="#ffffff"></div>
+                            <div><label for="colLineGap">행간 (px)</label><input type="number" id="colLineGap" value="0" min="-200" max="400" step="1" class="sm" title="시나리오명과 캐릭터 이름 사이 간격 · 기본 0 (테두리끼리 맞닿는 간격)"></div>
                         </div>
                         <div class="field-row" style="margin-top: 12px;">
                             <div class="font-upload">
@@ -1348,11 +1349,12 @@
         const id = { scenario: 'fontForScenario', char: 'fontForChar', label: 'fontForLabel' }[target];
         return customFontName && document.getElementById(id).checked ? `"${customFontName}", ${BASE_FONT}` : BASE_FONT;
     };
-    // 테두리 두께(px, 비우면 글자 크기에 맞춘 자동 두께) · 색
+    // 테두리 두께(px, 비우면 기본 12px, 0이면 테두리 없음) · 색
+    const DEFAULT_STROKE_PX = 12;
     const strokeColor = () => document.getElementById('colStrokeColor').value;
-    const strokeW = (autoWidth) => {
+    const strokeW = () => {
         const v = parseFloat(document.getElementById('colStrokeWidth').value);
-        return isNaN(v) ? autoWidth : Math.max(0, v);
+        return isNaN(v) ? DEFAULT_STROKE_PX : Math.max(0, v);
     };
 
     const updatePreviewBg = (type) => {
@@ -2498,8 +2500,9 @@
                 sideWidth: sideAreaWidth || '',   // 스탠딩이 들어가는 영역(캔버스) 너비
                 sideHeight: sideAreaHeight || '', // 스탠딩이 들어가는 영역 높이
                 sidePosition: document.getElementById('colSidePosition').value, // 스탠딩 배치 위치 (left/right)
-                strokeWidth: document.getElementById('colStrokeWidth').value,      // 테두리 두께(px, 빈 값 = 자동)
+                strokeWidth: document.getElementById('colStrokeWidth').value,      // 테두리 두께(px, 빈 값 = 기본 12)
                 strokeUnit: 'px',
+                lineGap: document.getElementById('colLineGap').value,              // 시나리오명·캐릭터 이름 행간(px)
                 strokeColor: document.getElementById('colStrokeColor').value,      // 테두리 색
                 gridPos: document.getElementById('colGridPos').value,             // 포트레이트 세로 위치
                 gridOffset: document.getElementById('colGridOffsetSlider').value,
@@ -2608,6 +2611,7 @@
             document.getElementById('colSidePosition').value = data.settings.sidePosition === 'right' ? 'right' : 'left';
             // 예전 %값 백업은 호환되지 않아 자동으로
             document.getElementById('colStrokeWidth').value = data.settings.strokeUnit === 'px' ? (data.settings.strokeWidth ?? '') : '';
+            document.getElementById('colLineGap').value = data.settings.lineGap ?? 0;
             document.getElementById('colStrokeColor').value = data.settings.strokeColor || '#ffffff';
             const gp = ['top', 'center', 'bottom', 'custom'].includes(data.settings.gridPos) ? data.settings.gridPos : 'top';
             document.getElementById('colGridPos').value = gp;
@@ -3259,7 +3263,7 @@
                     colX += charSize / 2;
                     drawVerticalColumn(charName, colX, charSize, fontFor('char'));
                     // 외곽선 두께만큼 더 띄워서 시나리오명과 겹치지 않게
-                    colX += charSize / 2 + strokeW(Math.max(4, charSize * 0.2)) / 2 + strokeW(Math.max(4, scenarioSize * 0.2)) / 2 + 10;
+                    colX += charSize / 2 + strokeW(Math.max(4, charSize * 0.2)) / 2 + strokeW(Math.max(4, scenarioSize * 0.2)) / 2 + (parseFloat(document.getElementById('colLineGap').value) || 0);
                 }
                 if (scenarioName) {
                     colX += scenarioSize / 2;
@@ -3281,7 +3285,9 @@
                         ctx.font = `900 ${charSize}px ${fontFor('char')}`;
                         return Math.max(0, ctx.measureText(charName).actualBoundingBoxAscent || 0); // 기준선(top) 위로 나온 높이
                     })();
-                    textY += scenarioBottom + strokeW(Math.max(4, scenarioSize * 0.2)) / 2 + strokeW(Math.max(4, charSize * 0.2)) / 2 + charTopOver + 10;
+                    // 행간 0 = 두 줄의 테두리가 맞닿는 간격, 입력한 px만큼 더 벌리거나(+) 좁힘(-)
+                    const lineGap = parseFloat(document.getElementById('colLineGap').value) || 0;
+                    textY += scenarioBottom + strokeW(Math.max(4, scenarioSize * 0.2)) / 2 + strokeW(Math.max(4, charSize * 0.2)) / 2 + charTopOver + lineGap;
                 }
                 if (charName) {
                     ctx.font = `900 ${charSize}px ${fontFor('char')}`;
@@ -3666,6 +3672,7 @@
     ['fontForScenario', 'fontForChar', 'fontForLabel', 'colStrokeColor'].forEach(id => document.getElementById(id).addEventListener('input', scheduleAutoPreview));
     ['fontForScenario', 'fontForChar', 'fontForLabel'].forEach(id => document.getElementById(id).addEventListener('change', scheduleAutoPreview));
     document.getElementById('colStrokeWidth').addEventListener('input', scheduleAutoPreview);
+    document.getElementById('colLineGap').addEventListener('input', scheduleAutoPreview);
 
     document.getElementById('colFontFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
