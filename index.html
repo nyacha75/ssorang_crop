@@ -1332,6 +1332,57 @@
         return p.length > 1 && last ? last : b;
     };
 
+    // 여러 파일명의 공통 앞부분 (예: '청랑 보이드 전신 기본', '청랑 보이드 전신 웃음' → '청랑 보이드 전신 ')
+    // 단어 중간에서 끊기지 않도록 마지막 띄어쓰기·구분 기호까지만 사용 (없으면 겹치는 글자 그대로)
+    const getCommonNamePrefix = (names) => {
+        const bases = names.filter(Boolean).map(n => n.replace(/\.[^/.]+$/, "").trim()).filter(Boolean);
+        if (bases.length < 2) return '';
+        let p = bases[0];
+        for (const b of bases) {
+            let i = 0;
+            while (i < p.length && i < b.length && p[i] === b[i]) i++;
+            p = p.slice(0, i);
+            if (!p) return '';
+        }
+        const cut = Math.max(p.lastIndexOf(' '), p.lastIndexOf('_'), p.lastIndexOf('@'), p.lastIndexOf('-'));
+        return cut >= 0 ? p.slice(0, cut + 1) : p;
+    };
+    // 표정 이름: ( ) 안 · '_' '@' '-' 뒤 규칙으로 먼저 찾고, 기호가 없으면 다른 파일들과 겹치는 앞부분을 뺀 나머지
+    const getExprName = (filename, allNames = []) => {
+        const base = filename.replace(/\.[^/.]+$/, "").trim();
+        const short = getShortName(filename);
+        if (short !== base) return short;
+        const prefix = getCommonNamePrefix(allNames);
+        if (prefix && base.startsWith(prefix)) {
+            const rest = base.slice(prefix.length).replace(/^[\s_@-]+/, '').trim();
+            if (rest) return rest;
+        }
+        return base;
+    };
+
+    // 처음 정해진 '겹치는 앞부분'을 기억해 두고, 나중에 추가되는 파일도 같은 방식으로 표정 이름을 정한다
+    // (파일이 2장 이상 모였을 때 한 번 정해지고, 첨부 파일을 모두 비우면 다시 정함)
+    let exprPrefix = null;
+    const resetExprPrefix = () => { exprPrefix = null; };
+    const resolveExprPrefix = () => {
+        if (exprPrefix === null) {
+            const names = f_pt.filter(Boolean).map(f => f.name);
+            if (names.length >= 2) exprPrefix = getCommonNamePrefix(names);
+        }
+        return exprPrefix || '';
+    };
+    const getExprNameFixed = (filename) => {
+        const base = filename.replace(/\.[^/.]+$/, "").trim();
+        const short = getShortName(filename);
+        if (short !== base) return short;
+        const prefix = resolveExprPrefix();
+        if (prefix && base.startsWith(prefix)) {
+            const rest = base.slice(prefix.length).replace(/^[\s_@-]+/, '').trim();
+            if (rest) return rest;
+        }
+        return base;
+    };
+
     const getNewFilename = (filename, suffix) => {
         const b = filename.replace(/\.[^/.]+$/, "");
         return `${b}${suffix}.png`;
@@ -1914,6 +1965,7 @@
             delBtn.onclick = () => {
                 f_pt.splice(index, 1);
                 f_ptIds.splice(index, 1);
+                if (!f_pt.length) resetExprPrefix();
                 renderPortraitFileList();
                 if (index === 0 && f_pt.length > 0) {
                     stashCropVerbatim('pt'); stashCropVerbatim('col');
@@ -1994,6 +2046,7 @@
         if (f_pt.length === 0) return;
         if (!confirm('첨부된 스탠딩 파일을 모두 초기화할까요? 콜라주 미리보기도 함께 초기화됩니다.')) return;
         f_pt = [];
+        resetExprPrefix();
         f_ptIds = [];
         document.getElementById('filePortrait').value = '';
         renderPortraitFileList();
@@ -2374,7 +2427,15 @@
         if (typedName) return `${typedName}_ssorang`;
         const list = target === 'ci' ? f_ci : f_pt;
         const first = list.find(f => f);
-        return first ? `${getCharBaseName(first.name)}_ssorang` : 'ssorang';
+        if (!first) return 'ssorang';
+        // 기호가 없는 파일명은 여러 파일의 공통 앞부분을 캐릭터 이름으로 (예: '청랑 보이드 전신')
+        const base = first.name.replace(/\.[^/.]+$/, '').trim();
+        let charBase = getCharBaseName(first.name);
+        if (charBase === base) {
+            const prefix = getCommonNamePrefix(list.filter(Boolean).map(f => f.name)).replace(/[\s_@-]+$/, '').trim();
+            if (prefix) charBase = prefix;
+        }
+        return `${charBase}_ssorang`;
     }
     function openZipModal(target) {
         const modal = document.getElementById('zipNameModal');
@@ -2689,6 +2750,7 @@
             });
             f_pt = restoredOriginals;
             f_ptIds = restoredOriginals.map(() => genFilePtId());
+            resetExprPrefix(); resolveExprPrefix(); // 불러온 파일들 기준으로 '겹치는 앞부분'을 다시 정해 둠
             itemCropOverrides = {};
             data.items.forEach((itemData, idx) => { if (itemData.cropOverride) itemCropOverrides[f_ptIds[idx]] = itemData.cropOverride; });
             renderPortraitFileList();
@@ -2699,6 +2761,7 @@
             data.items.forEach((itemData, idx) => {
                 const mode = itemData.blindMode || (itemData.blinded ? 'silhouette' : 'none');
                 createCollageItem(itemData.src, itemData.name, f_ptIds[idx], mode, !!itemData.nameOff);
+                gridArea.lastElementChild.dataset.userEdited = '1'; // 백업에 저장된 이름은 그대로 유지
             });
 
             document.getElementById('collagePreviewArea').style.display = 'block';
@@ -2979,7 +3042,7 @@
             if (apply) {
                 const input = nameEditItem.querySelector('input');
                 input.value = nameEdit.value;
-                input.dispatchEvent(new Event('input'));
+                input.dispatchEvent(new CustomEvent('input', { detail: 'user' })); // 직접 고친 이름으로 표시
             }
             nameEditItem = null;
             nameEdit.classList.remove('show');
@@ -3356,7 +3419,10 @@
         const pInput = document.createElement('input');
         pInput.type = 'text';
         pInput.value = name;
-        pInput.addEventListener('input', scheduleAutoPreview);
+        pInput.addEventListener('input', (e) => {
+            if (e.isTrusted || e.detail === 'user') item.dataset.userEdited = '1'; // 직접 고친 이름 표시
+            scheduleAutoPreview();
+        });
 
         const controls = document.createElement('div');
         controls.className = 'item-controls';
@@ -3573,6 +3639,7 @@
             prevItems.forEach(it => {
                 prevStateById[it.dataset.id] = {
                     name: it.querySelector('input').value,
+                    userEdited: it.dataset.userEdited === '1',   // 사용자가 직접 고친 이름이면 유지
                     blindMode: it.dataset.blindMode || 'none',
                     nameOff: it.dataset.nameOff === 'true'
                 };
@@ -3599,7 +3666,9 @@
                 generated.push({
                     fileId,
                     src: canvas.toDataURL(),
-                    name: prev ? prev.name : getShortName(file.name),
+                    // 이미 등록된 표정은 이름 그대로, 새로 추가된 파일만 처음 정해진 방식(겹치는 앞부분 제거)으로 이름을 정함
+                    name: prev ? prev.name : getExprNameFixed(file.name),
+                    userEdited: !!(prev && prev.userEdited),
                     blindMode: prev ? prev.blindMode : 'none',
                     nameOff: prev ? prev.nameOff : false
                 });
@@ -3617,7 +3686,10 @@
             // 깜빡임 방지: 새 이미지를 미리 디코딩해 두고, 기존 카드는 마지막 순간에 한 번에 교체
             await Promise.all(ordered.map(g => { const im = new Image(); im.src = g.src; return im.decode().catch(() => {}); }));
             gridArea.innerHTML = '';
-            ordered.forEach(g => createCollageItem(g.src, g.name, g.fileId, g.blindMode, g.nameOff));
+            ordered.forEach(g => {
+                createCollageItem(g.src, g.name, g.fileId, g.blindMode, g.nameOff);
+                if (g.userEdited) gridArea.lastElementChild.dataset.userEdited = '1';
+            });
             updatePickerThumbs();
 
             await requestRedraw();
@@ -3700,7 +3772,8 @@
     function addPortraitFilesInOrder(newFiles) {
         let ordered = newFiles;
         if (f_pt.length === 0) {
-            const isBasic = (f) => getShortName(f.name).trim() === '기본';
+            const allNames = newFiles.map(f => f.name);
+            const isBasic = (f) => getExprName(f.name, allNames).trim() === '기본';
             const isMad = (f) => !isBasic(f) && f.name.includes('광기');
             ordered = [
                 ...newFiles.filter(isBasic),
@@ -3812,6 +3885,7 @@
         if (index < 0) return;
         f_pt.splice(index, 1);
         f_ptIds.splice(index, 1);
+        if (!f_pt.length) resetExprPrefix();
         delete itemCropOverrides[id];
         document.querySelector(`.collage-item[data-id="${id}"]`)?.remove();
         updateToggleAllNamesBtn();
