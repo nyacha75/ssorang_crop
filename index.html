@@ -1985,7 +1985,34 @@
     // ==========================================
     // [탭 2-1] 스탠딩 - 크롭 위치/배율/회전 백업 & 불러오기
     // ==========================================
-    document.getElementById('btnPtCropBackup').addEventListener('click', () => {
+    // 백업에 원본 이미지까지 함께 넣기 / 꺼내기
+    const fileToDataURL = (file) => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+    async function packOriginalFiles(list) {
+        const out = [];
+        for (const f of list) {
+            if (!f) continue;
+            const data = await fileToDataURL(f);
+            if (data) out.push({ name: f.name, data });
+        }
+        return out;
+    }
+    // 백업 속 원본을 해당 탭의 파일 선택칸으로 바로 첨부 (일반 업로드와 똑같이 처리됨). 첨부했으면 true
+    function attachBackupOriginals(files, inputId) {
+        if (!Array.isArray(files) || !files.length) return false;
+        const dt = new DataTransfer();
+        files.forEach(f => dt.items.add(dataURLToFile(f.data, f.name)));
+        const input = document.getElementById(inputId);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change'));
+        return true;
+    }
+
+    document.getElementById('btnPtCropBackup').addEventListener('click', async () => {
         if (!c_pt) { alert('먼저 스탠딩 파일을 첨부하고 크롭 위치를 맞춰주세요.'); return; }
         const backup = {
             type: 'ssorang_pt_crop_v1',
@@ -1993,7 +2020,8 @@
             h: document.getElementById('portraitH').value,
             square: document.getElementById('ptSquareToggle').checked,
             rotation: parseInt(document.getElementById('portraitRotateSlider').value) || 0,
-            canvasData: c_pt.getCanvasData()
+            canvasData: c_pt.getCanvasData(),
+            files: await packOriginalFiles(f_pt)   // 첨부한 원본 이미지도 함께 저장
         };
         const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
         safeDownloadBlob(blob, '스탠딩_크롭설정.json');
@@ -2014,7 +2042,9 @@
 
             pendingCropByType['pt'] = { mode: 'verbatim', rotation: data.rotation || 0, canvasData: data.canvasData };
 
-            if (f_pt.length > 0) {
+            if (attachBackupOriginals(data.files, 'filePortrait')) {
+                // 원본을 첨부하면 크로퍼가 새로 만들어지면서 위 크롭 설정이 그대로 적용됨
+            } else if (f_pt.length > 0) {
                 loadCropper('pt');
             } else {
                 alert('크롭 설정을 불러왔습니다. 스탠딩 파일을 첨부하면 자동으로 동일한 위치·배율로 맞춰집니다.');
@@ -2033,13 +2063,14 @@
     // ==========================================
     // [탭 3] 컷인 - 크롭 위치/배율 백업 & 불러오기
     // ==========================================
-    document.getElementById('btnCiCropBackup').addEventListener('click', () => {
+    document.getElementById('btnCiCropBackup').addEventListener('click', async () => {
         if (!c_ci) { alert('먼저 컷인 파일을 첨부하고 크롭 위치를 맞춰주세요.'); return; }
         const backup = {
             type: 'ssorang_ci_crop_v1',
             w: document.getElementById('cutinW').value,
             h: document.getElementById('cutinH').value,
-            canvasData: c_ci.getCanvasData()
+            canvasData: c_ci.getCanvasData(),
+            files: await packOriginalFiles(f_ci)   // 첨부한 원본 이미지도 함께 저장
         };
         const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
         safeDownloadBlob(blob, '컷인_크롭설정.json');
@@ -2060,7 +2091,9 @@
 
             pendingCropByType['ci'] = { mode: 'verbatim', rotation: 0, canvasData: data.canvasData };
 
-            if (f_ci.length > 0) {
+            if (attachBackupOriginals(data.files, 'fileCutin')) {
+                // 원본을 첨부하면 크로퍼가 새로 만들어지면서 위 크롭 설정이 그대로 적용됨
+            } else if (f_ci.length > 0) {
                 loadCropper('ci');
             } else {
                 alert('크롭 설정을 불러왔습니다. 컷인 파일을 첨부하면 자동으로 동일한 위치·배율로 맞춰집니다.');
