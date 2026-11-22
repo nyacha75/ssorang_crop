@@ -428,6 +428,18 @@
             background: #fff; border: 2px solid var(--primary); border-radius: 8px; box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
         }
         .canvas-wrap .cell-name-ghost.show { display: block; }
+        .canvas-wrap .cell-del {
+            display: none; position: absolute; z-index: 9; width: 26px; height: 26px; padding: 0;
+            border: none; border-radius: 50%; background: rgba(255, 255, 255, .95); color: #64748b;
+            font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+        }
+        .canvas-wrap .cell-del.show { display: block; }
+        .canvas-wrap .cell-del:hover { background: #fee2e2; color: var(--danger); }
+        .canvas-wrap .cell-drop-line {
+            display: none; position: absolute; z-index: 9; width: 4px; margin-left: -2px; pointer-events: none;
+            background: var(--primary); border-radius: 2px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .9);
+        }
+        .canvas-wrap .cell-drop-line.show { display: block; }
 
         /* 스탠딩 너비·높이 조절 바: 미리보기에 마우스를 올렸을 때만 스탠딩(반신) 바로 밑에 표시 (위치는 JS에서 계산) */
         .side-width-bar {
@@ -859,6 +871,22 @@
                                 <div><label for="colCols">열 수</label><input type="number" id="colCols" value="3" class="sm"></div>
                                 <div><label for="colMargin">여백 (px)</label><input type="number" id="colMargin" value="15" class="sm"></div>
                             </div>
+                            <div class="field-row">
+                                <div><label for="colGridPos">포트레이트 위치</label>
+                                    <select id="colGridPos">
+                                        <option value="top" selected>기본 (상단)</option>
+                                        <option value="center">중앙</option>
+                                        <option value="bottom">하단</option>
+                                        <option value="custom">직접 조절</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- '직접 조절'일 때: 위에서부터 얼마나 내릴지 (스탠딩이 포트레이트보다 길 때 남는 세로 공간 안에서) -->
+                            <div class="rotate-row grid-pos-custom" id="colGridPosCustom" style="display: none; margin-top: 10px;">
+                                <input type="range" id="colGridOffsetSlider" min="0" max="100" step="1" value="0">
+                                <span class="num-edit"><input type="number" id="colGridOffsetValue" value="0" min="0" max="100" step="1"><i>%</i></span>
+                            </div>
+                            <p class="hint" id="colGridPosHint" style="margin-top: 8px;">스탠딩이 포트레이트보다 길 때 남는 세로 공간 안에서 위치가 바뀌어요.</p>
                         </div>
                         <div class="field" id="colSideField" style="display: none;">
                             <div class="field-title-row">
@@ -914,6 +942,10 @@
                         <input type="text" class="cell-name-edit" id="cellNameEdit" placeholder="표정 이름">
                         <!-- 표정 칸에 마우스를 올리면 이름 자리에 미리 보여주는 이름 칸 (누르면 바로 수정) -->
                         <div class="cell-name-edit cell-name-ghost" id="cellNameGhost"></div>
+                        <!-- 표정 칸에 마우스를 올리면 오른쪽 위에 뜨는 삭제 버튼 -->
+                        <button type="button" class="cell-del" id="cellDelBtn" title="표정 삭제">✕</button>
+                        <!-- 드래그로 순서를 바꿀 때 놓을 자리(칸 사이)를 보여주는 세로선 -->
+                        <div class="cell-drop-line" id="cellDropLine"></div>
                         <div class="side-width-bar" id="sideWidthBar">
                             <div class="bar-box">
                             <div class="bar-row side-only">
@@ -981,10 +1013,25 @@
                                     <option value="right">우측</option>
                                 </select>
                             </div>
+                            <!-- 테두리 두께(px)·색: 시나리오명·캐릭터명·표정 이름 모두에 적용. 비우면 글자 크기에 맞춘 자동 두께 -->
+                            <div><label for="colStrokeWidth">테두리 두께 (px)</label><input type="number" id="colStrokeWidth" value="" placeholder="자동" min="0" max="200" step="1" class="sm" title="비우면 글자 크기에 맞춘 자동 두께, 0이면 테두리 없음"></div>
+                            <div><label for="colStrokeColor">테두리 색</label><input type="color" id="colStrokeColor" value="#ffffff"></div>
+                        </div>
+                        <div class="field-row" style="margin-top: 12px;">
                             <div class="font-upload">
                                 <label for="colFontFile">사용자 폰트 업로드</label>
-                                <input type="file" id="colFontFile" accept=".ttf,.otf,.woff,.woff2">
+                                <div class="input-group">
+                                    <input type="file" id="colFontFile" accept=".ttf,.otf,.woff,.woff2">
+                                    <button type="button" id="btnFontReset" class="sub-btn fit">기본 폰트로 초기화</button>
+                                </div>
                             </div>
+                        </div>
+                        <!-- 사용자 폰트를 적용할 곳 (여러 개 선택 가능) -->
+                        <div class="check-list" id="fontTargets" style="margin-top: 10px;">
+                            <span class="optional" style="font-size: 12.5px;">폰트 적용:</span>
+                            <label class="check"><input type="checkbox" id="fontForScenario" checked> 시나리오명</label>
+                            <label class="check"><input type="checkbox" id="fontForChar" checked> 캐릭터명</label>
+                            <label class="check"><input type="checkbox" id="fontForLabel" checked> 표정 이름</label>
                         </div>
                         <div id="colFontStatus" class="hint" style="margin-top: 6px; color: var(--text-2);"></div>
                     </details>
@@ -1295,6 +1342,18 @@
     };
 
     const getActiveFontFamily = () => customFontName ? `"${customFontName}"` : `"Pretendard", sans-serif`;
+    // 사용자 폰트를 대상별로: 'scenario' | 'char' | 'label' 체크된 곳에만 적용, 나머지는 기본 폰트
+    const BASE_FONT = `"Pretendard", sans-serif`;
+    const fontFor = (target) => {
+        const id = { scenario: 'fontForScenario', char: 'fontForChar', label: 'fontForLabel' }[target];
+        return customFontName && document.getElementById(id).checked ? `"${customFontName}", ${BASE_FONT}` : BASE_FONT;
+    };
+    // 테두리 두께(px, 비우면 글자 크기에 맞춘 자동 두께) · 색
+    const strokeColor = () => document.getElementById('colStrokeColor').value;
+    const strokeW = (autoWidth) => {
+        const v = parseFloat(document.getElementById('colStrokeWidth').value);
+        return isNaN(v) ? autoWidth : Math.max(0, v);
+    };
 
     const updatePreviewBg = (type) => {
         const chk = document.getElementById(`${type}Transparent`);
@@ -1704,13 +1763,24 @@
         });
     });
 
+    // 포트레이트 위치
+    document.getElementById('colGridPos').addEventListener('change', e => {
+        document.getElementById('colGridPosCustom').style.display = e.target.value === 'custom' ? 'flex' : 'none';
+        scheduleAutoPreview();
+    });
+    document.getElementById('colGridOffsetSlider').addEventListener('input', e => {
+        document.getElementById('colGridOffsetValue').value = e.target.value;
+        requestRedraw();
+    });
+
     // 숫자 입력칸 ↔ 슬라이더 연결: 숫자를 입력하면 범위 안으로 맞춘 뒤 슬라이더를 움직여 같은 동작을 실행
     [
         ['ptRotateValue', 'portraitRotateSlider'],
         ['colRotateValue', 'colRotateSlider'],
         ['sideWidthValue', 'sideWidthSlider'],
         ['sideHeightValue', 'sideHeightSlider'],
-        ['bgOpacityValue', 'bgOpacitySlider']
+        ['bgOpacityValue', 'bgOpacitySlider'],
+        ['colGridOffsetValue', 'colGridOffsetSlider']
     ].forEach(([numId, sliderId]) => {
         const num = document.getElementById(numId);
         const slider = document.getElementById(sliderId);
@@ -2424,6 +2494,11 @@
                 sideWidth: sideAreaWidth || '',   // 스탠딩이 들어가는 영역(캔버스) 너비
                 sideHeight: sideAreaHeight || '', // 스탠딩이 들어가는 영역 높이
                 sidePosition: document.getElementById('colSidePosition').value, // 스탠딩 배치 위치 (left/right)
+                strokeWidth: document.getElementById('colStrokeWidth').value,      // 테두리 두께(px, 빈 값 = 자동)
+                strokeUnit: 'px',
+                strokeColor: document.getElementById('colStrokeColor').value,      // 테두리 색
+                gridPos: document.getElementById('colGridPos').value,             // 포트레이트 세로 위치
+                gridOffset: document.getElementById('colGridOffsetSlider').value,
                 background: {
                     enabled: bgState.enabled, mode: bgState.mode,
                     solid: document.getElementById('bgSolidColor').value,
@@ -2467,6 +2542,11 @@
                 settings: settings,
                 sideImage: sideImageBase64,
                 fontName: customFontName,
+                fontTargets: {
+                    scenario: document.getElementById('fontForScenario').checked,
+                    char: document.getElementById('fontForChar').checked,
+                    label: document.getElementById('fontForLabel').checked
+                },
                 fontData: customFontDataUrl
             };
 
@@ -2522,6 +2602,14 @@
             sideAreaWidth = parseInt(data.settings.sideWidth) || null;
             sideAreaHeight = parseInt(data.settings.sideHeight) || null;
             document.getElementById('colSidePosition').value = data.settings.sidePosition === 'right' ? 'right' : 'left';
+            // 예전 %값 백업은 호환되지 않아 자동으로
+            document.getElementById('colStrokeWidth').value = data.settings.strokeUnit === 'px' ? (data.settings.strokeWidth ?? '') : '';
+            document.getElementById('colStrokeColor').value = data.settings.strokeColor || '#ffffff';
+            const gp = ['top', 'center', 'bottom', 'custom'].includes(data.settings.gridPos) ? data.settings.gridPos : 'top';
+            document.getElementById('colGridPos').value = gp;
+            document.getElementById('colGridPosCustom').style.display = gp === 'custom' ? 'flex' : 'none';
+            document.getElementById('colGridOffsetSlider').value = parseInt(data.settings.gridOffset) || 0;
+            document.getElementById('colGridOffsetValue').value = parseInt(data.settings.gridOffset) || 0;
             const bgData = data.settings.background;
             if (bgData) {
                 bgState.enabled = !!bgData.enabled;
@@ -2569,6 +2657,10 @@
             sideFromPtId = null;
             updateSideUI();
 
+            const ft = data.fontTargets || { scenario: true, char: true, label: true };
+            document.getElementById('fontForScenario').checked = ft.scenario !== false;
+            document.getElementById('fontForChar').checked = ft.char !== false;
+            document.getElementById('fontForLabel').checked = ft.label !== false;
             if (data.fontName && data.fontData) {
                 try {
                     await loadCustomFontFromDataUrl(data.fontName, data.fontData);
@@ -2693,11 +2785,15 @@
             if (dragTarget === 'cell') {
                 if (Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY) > 4) dragMoved = true;
                 if (!dragMoved) return;
-                const t = cellAt(e);
-                if (t >= 0) {
-                    showCellHover(t);
-                    hover.querySelector('span').innerText = t === dragCellIdx ? '↕ 옮길 칸에 놓으세요' : '여기로 이동';
-                } else hideCellHover();
+                hideCellHover();
+                const slot = insertSlotAt(e);
+                if (slot) {
+                    const L = lastCollageLayout, k = cvs.getBoundingClientRect().width / cvs.width;
+                    dropLine.style.left = (L.offsetX + slot.col * (L.w + L.gap) - L.gap / 2) * k + 'px';
+                    dropLine.style.top = (L.gridTop + slot.row * (L.h + L.gap)) * k + 'px';
+                    dropLine.style.height = L.h * k + 'px';
+                    dropLine.classList.add('show');
+                } else dropLine.classList.remove('show');
                 return;
             }
             const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
@@ -2716,16 +2812,18 @@
             isDragging = false;
             cvs.style.cursor = 'grab';
             if (dragTarget === 'cell') {
-                hover.querySelector('span').innerText = HOVER_TEXT;
                 hideCellHover();
+                dropLine.classList.remove('show');
                 if (!dragMoved) return;
-                const t = cellAt(e);
+                const slot = insertSlotAt(e);
                 const grid = document.getElementById('collageGrid');
                 const cards = Array.from(grid.children);
-                const src = cards[dragCellIdx], dst = cards[t];
-                if (t < 0 || !src || !dst || t === dragCellIdx) return;
-                // 놓은 칸 자리로 이동 (뒤로 옮기면 그 칸 뒤, 앞으로 옮기면 그 칸 앞)
-                grid.insertBefore(src, dragCellIdx < t ? dst.nextSibling : dst);
+                const src = cards[dragCellIdx];
+                if (!slot || !src) return;
+                // 칸 사이(놓은 위치의 세로선 자리)에 끼워 넣기
+                let to = slot.index;
+                if (to === dragCellIdx || to === dragCellIdx + 1) return; // 제자리
+                grid.insertBefore(src, cards[to] || null);
                 syncFilesToCollageOrder();
                 scheduleAutoPreview();
             }
@@ -2756,13 +2854,28 @@
             if (!L) return -1;
             const r = cvs.getBoundingClientRect();
             const k = cvs.width / r.width;
-            const x = (e.clientX - r.left) * k - L.offsetX, y = (e.clientY - r.top) * k - L.gap;
+            const x = (e.clientX - r.left) * k - L.offsetX, y = (e.clientY - r.top) * k - L.gridTop;
             if (x < 0 || y < 0) return -1;
             const col = Math.floor(x / (L.w + L.gap)), row = Math.floor(y / (L.h + L.gap));
             if (col >= L.cols || x - col * (L.w + L.gap) > L.w || y - row * (L.h + L.gap) > L.h) return -1;
             const idx = row * L.cols + col;
             return idx < L.count ? idx : -1;
         };
+        // 드래그 중 놓을 자리: 마우스가 있는 줄에서 가장 가까운 칸 사이(경계)를 찾는다
+        //  index = 그 자리에 들어갈 순서(0 ~ 개수), row/col = 세로선을 그릴 위치
+        const insertSlotAt = (e) => {
+            const L = lastCollageLayout;
+            if (!L || !L.count) return null;
+            const r = cvs.getBoundingClientRect();
+            const k = cvs.width / r.width;
+            const x = (e.clientX - r.left) * k - L.offsetX, y = (e.clientY - r.top) * k - L.gridTop;
+            const rows = Math.ceil(L.count / L.cols);
+            const row = Math.max(0, Math.min(rows - 1, Math.floor((y + L.gap / 2) / (L.h + L.gap))));
+            const inRow = Math.min(L.cols, L.count - row * L.cols);          // 그 줄에 있는 칸 수
+            const col = Math.max(0, Math.min(inRow, Math.round(x / (L.w + L.gap) + 0)));
+            return { index: row * L.cols + col, row, col };
+        };
+
         // 캔버스 좌표로 표정 이름 영역을 찾는다 (없으면 -1)
         const labelAt = (e) => {
             const L = lastCollageLayout;
@@ -2802,16 +2915,26 @@
             const left = Math.max(cellX + 4, Math.min(centerX - width / 2, cellX + cellW - 4 - width));
             return { left, top: (b.y + b.h / 2) * k - 17, width };
         };
-        const hideCellHover = () => { hover.classList.remove('show'); nameGhost.classList.remove('show'); };
+        const delBtn = document.getElementById('cellDelBtn');
+        const dropLine = document.getElementById('cellDropLine');
+        let delBtnIdx = -1;
+        const hideCellHover = () => { hover.classList.remove('show'); nameGhost.classList.remove('show'); delBtn.classList.remove('show'); };
         const showCellHover = (idx) => {
             const L = lastCollageLayout;
             const k = cvs.getBoundingClientRect().width / cvs.width;
             const col = idx % L.cols, row = Math.floor(idx / L.cols);
             hover.style.left = (L.offsetX + col * (L.w + L.gap)) * k + 'px';
-            hover.style.top = (L.gap + row * (L.h + L.gap)) * k + 'px';
+            hover.style.top = (L.gridTop + row * (L.h + L.gap)) * k + 'px';
             hover.style.width = L.w * k + 'px';
             hover.style.height = L.h * k + 'px';
             hover.classList.add('show');
+            // 오른쪽 위 삭제 버튼 (드래그 중에는 숨김)
+            if (!isDragging) {
+                delBtn.style.left = ((L.offsetX + col * (L.w + L.gap) + L.w) * k - 32) + 'px';
+                delBtn.style.top = ((L.gridTop + row * (L.h + L.gap)) * k + 6) + 'px';
+                delBtn.classList.add('show');
+                delBtnIdx = idx;
+            } else delBtn.classList.remove('show');
             // 이름 칸도 같이 보여주기 (순서 바꾸는 중이거나 이름을 고치는 중이면 숨김)
             const pos = (isDragging || document.getElementById('cellNameEdit').classList.contains('show')) ? null : labelBoxPos(idx);
             const item = document.querySelectorAll('.collage-item')[idx];
@@ -2830,7 +2953,15 @@
             if (idx >= 0) showCellHover(idx); else hideCellHover();
             cvs.style.cursor = labelAt(e) >= 0 ? 'text' : idx >= 0 ? 'pointer' : (document.getElementById('colSideImg').files[0] ? 'grab' : 'default');
         });
-        cvs.addEventListener('mouseleave', hideCellHover);
+        // 캔버스에서 삭제 버튼으로 마우스를 옮길 때는 숨기지 않음
+        cvs.addEventListener('mouseleave', (e) => { if (e.relatedTarget !== delBtn) hideCellHover(); });
+        delBtn.addEventListener('mouseleave', (e) => { if (e.relatedTarget !== cvs) hideCellHover(); });
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const item = document.querySelectorAll('.collage-item')[delBtnIdx];
+            hideCellHover();
+            if (item) removePortraitFileById(item.dataset.id);
+        });
 
         // 더블클릭: 그 칸의 표정 이름 위치에 입력칸을 띄워 바로 수정 (엔터·바깥 클릭으로 적용, Esc로 취소)
         const nameEdit = document.getElementById('cellNameEdit');
@@ -3012,8 +3143,16 @@
         }
 
         const offsetX = gap + (sideImg && !sideOnRight ? sideAreaW + gap : 0);
+        // 포트레이트 세로 위치: 캔버스에 남는 세로 공간(free) 안에서 상단·중앙·하단·직접 조절(%)
+        const gridFree = Math.max(0, cvs.height - gap * 2 - gridH);
+        const gridPos = document.getElementById('colGridPos').value;
+        const gridShift = gridPos === 'center' ? gridFree / 2
+                        : gridPos === 'bottom' ? gridFree
+                        : gridPos === 'custom' ? gridFree * (parseInt(document.getElementById('colGridOffsetSlider').value) || 0) / 100
+                        : 0;
+        const gridTop = gap + Math.round(gridShift);
         if (!isDownload) lastCollageLayout = {
-            offsetX, gap, w, h, cols, count: items.length,
+            offsetX, gap, gridTop, w, h, cols, count: items.length,
             labels: [],                                                // 칸별 표정 이름 영역 (클릭하면 이름 수정)
             side: sideImg ? {
                 x: sideX, y: gap, w: sideAreaW, h: sideAreaH,          // 스탠딩 영역 (휠 확대 판정용)
@@ -3029,7 +3168,7 @@
             const blindMode = item.dataset.blindMode || (item.dataset.blinded === 'true' ? 'silhouette' : 'none');
             const isNameOff = item.dataset.nameOff === 'true';
             const tx = offsetX + (i % cols)*(w + gap);
-            const ty = gap + Math.floor(i / cols)*(h + gap);
+            const ty = gridTop + Math.floor(i / cols)*(h + gap);
 
             await new Promise(r => {
                 const tmpImg = new Image();
@@ -3068,17 +3207,17 @@
                     const ly = labelV === 'top' ? ty + padY : ty + h - padY;
                     if (!isDownload && !isNameOff) {
                         // 클릭으로 이름을 고칠 수 있는 영역 기록 (이름이 비어 있어도 그 자리를 누를 수 있게 최소 너비 확보)
-                        ctx.font = `900 ${fs}px ${fontFamily}`;
+                        ctx.font = `900 ${fs}px ${fontFor('label')}`;
                         const tw = Math.max(text ? ctx.measureText(text).width : 0, w * 0.4);
                         const rx = labelH === 'left' ? lx : (labelH === 'right' ? lx - tw : lx - tw / 2);
                         const ry = labelV === 'top' ? ly : ly - fs;
                         lastCollageLayout.labels[i] = { x: rx - 6, y: ry - 6, w: tw + 12, h: fs + 12 };
                     }
                     if (text && !isNameOff) {
-                        ctx.font = `900 ${fs}px ${fontFamily}`;
+                        ctx.font = `900 ${fs}px ${fontFor('label')}`;
                         ctx.textAlign = labelH; ctx.textBaseline = labelV === 'top' ? 'top' : 'bottom';
-                        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, fs * 0.25); ctx.lineJoin = 'round';
-                        ctx.strokeText(text, lx, ly);
+                        ctx.strokeStyle = strokeColor(); ctx.lineWidth = strokeW(Math.max(4, fs * 0.25)); ctx.lineJoin = 'round';
+                        if (ctx.lineWidth > 0) ctx.strokeText(text, lx, ly);
                         ctx.fillStyle = textColor; ctx.fillText(text, lx, ly);
                     }
                     r();
@@ -3097,15 +3236,15 @@
             if (isVerticalText) {
                 // 세로쓰기: 캐릭터 이름을 먼저(왼쪽) 배치하고, 시나리오명을 그 오른쪽 칸에 배치
                 ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-                const drawVerticalColumn = (text, centerX, fontSize) => {
-                    ctx.font = `900 ${fontSize}px ${fontFamily}`;
-                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, fontSize * 0.2); ctx.lineJoin = 'round';
+                const drawVerticalColumn = (text, centerX, fontSize, family) => {
+                    ctx.font = `900 ${fontSize}px ${family}`;
+                    ctx.strokeStyle = strokeColor(); ctx.lineWidth = strokeW(Math.max(4, fontSize * 0.2)); ctx.lineJoin = 'round';
                     const lineHeight = fontSize * 1.05;
                     let y = gap;
                     for (const ch of Array.from(text)) {
                         // 띄어쓰기는 일반 글자 간격의 절반만 차지
                         if (ch === ' ' || ch === '\u3000') { y += lineHeight / 2; continue; }
-                        ctx.strokeText(ch, centerX, y);
+                        if (ctx.lineWidth > 0) ctx.strokeText(ch, centerX, y);
                         ctx.fillStyle = textColor;
                         ctx.fillText(ch, centerX, y);
                         y += lineHeight;
@@ -3114,27 +3253,36 @@
                 let colX = sideX + 10;
                 if (charName) {
                     colX += charSize / 2;
-                    drawVerticalColumn(charName, colX, charSize);
-                    colX += charSize / 2 + 10;
+                    drawVerticalColumn(charName, colX, charSize, fontFor('char'));
+                    // 외곽선 두께만큼 더 띄워서 시나리오명과 겹치지 않게
+                    colX += charSize / 2 + strokeW(Math.max(4, charSize * 0.2)) / 2 + strokeW(Math.max(4, scenarioSize * 0.2)) / 2 + 10;
                 }
                 if (scenarioName) {
                     colX += scenarioSize / 2;
-                    drawVerticalColumn(scenarioName, colX, scenarioSize);
+                    drawVerticalColumn(scenarioName, colX, scenarioSize, fontFor('scenario'));
                 }
             } else {
                 ctx.textAlign = 'left'; ctx.textBaseline = 'top';
                 let textY = gap;
                 if (scenarioName) {
-                    ctx.font = `900 ${scenarioSize}px ${fontFamily}`;
-                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, scenarioSize * 0.2); ctx.lineJoin = 'round';
-                    ctx.strokeText(scenarioName, sideX + 10, textY);
+                    ctx.font = `900 ${scenarioSize}px ${fontFor('scenario')}`;
+                    ctx.strokeStyle = strokeColor(); ctx.lineWidth = strokeW(Math.max(4, scenarioSize * 0.2)); ctx.lineJoin = 'round';
+                    if (ctx.lineWidth > 0) ctx.strokeText(scenarioName, sideX + 10, textY);
                     ctx.fillStyle = textColor; ctx.fillText(scenarioName, sideX + 10, textY);
-                    textY += scenarioSize + 10;
+                    // 실제 글자 아래 끝(외곽선 포함)까지 내려서 캐릭터 이름과 겹치지 않게
+                    const m = ctx.measureText(scenarioName);
+                    const scenarioBottom = Math.max(scenarioSize, m.actualBoundingBoxDescent || 0);
+                    const charTopOver = (() => { // 캐릭터 이름이 위쪽으로 튀어나오는 정도
+                        if (!charName) return 0;
+                        ctx.font = `900 ${charSize}px ${fontFor('char')}`;
+                        return Math.max(0, ctx.measureText(charName).actualBoundingBoxAscent || 0); // 기준선(top) 위로 나온 높이
+                    })();
+                    textY += scenarioBottom + strokeW(Math.max(4, scenarioSize * 0.2)) / 2 + strokeW(Math.max(4, charSize * 0.2)) / 2 + charTopOver + 10;
                 }
                 if (charName) {
-                    ctx.font = `900 ${charSize}px ${fontFamily}`;
-                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, charSize * 0.2); ctx.lineJoin = 'round';
-                    ctx.strokeText(charName, sideX + 10, textY);
+                    ctx.font = `900 ${charSize}px ${fontFor('char')}`;
+                    ctx.strokeStyle = strokeColor(); ctx.lineWidth = strokeW(Math.max(4, charSize * 0.2)); ctx.lineJoin = 'round';
+                    if (ctx.lineWidth > 0) ctx.strokeText(charName, sideX + 10, textY);
                     ctx.fillStyle = textColor; ctx.fillText(charName, sideX + 10, textY);
                 }
             }
@@ -3504,6 +3652,17 @@
         scheduleAutoPreview();
     }
 
+    // 기본 폰트로 초기화
+    document.getElementById('btnFontReset').addEventListener('click', () => {
+        customFontName = null; customFontDataUrl = null;
+        document.getElementById('colFontFile').value = '';
+        document.getElementById('colFontStatus').innerText = '';
+        scheduleAutoPreview();
+    });
+    ['fontForScenario', 'fontForChar', 'fontForLabel', 'colStrokeColor'].forEach(id => document.getElementById(id).addEventListener('input', scheduleAutoPreview));
+    ['fontForScenario', 'fontForChar', 'fontForLabel'].forEach(id => document.getElementById(id).addEventListener('change', scheduleAutoPreview));
+    document.getElementById('colStrokeWidth').addEventListener('input', scheduleAutoPreview);
+
     document.getElementById('colFontFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -3726,7 +3885,7 @@
             return {
                 name: item.querySelector('input').value.trim(),
                 left: (L.offsetX + col * (L.w + L.gap)) / W * 100,
-                top: (L.gap + row * (L.h + L.gap)) / H * 100,
+                top: (L.gridTop + row * (L.h + L.gap)) / H * 100,
                 width: L.w / W * 100,
                 height: L.h / H * 100
             };
