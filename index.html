@@ -2040,6 +2040,10 @@
         document.getElementById(sldId).value = 0; document.getElementById(valId).value = 0;
         if (!c) return;
         c.reset();
+        // reset()은 자르기 영역도 처음 기본값(이미지 크기 기준)으로 되돌려서 그림이 잘려 보이므로,
+        // 불러올 때처럼 자르기 영역을 미리보기 박스 전체로 다시 맞춘다
+        const cont = c.getContainerData();
+        c.setCropBoxData({ left: 0, top: 0, width: cont.width, height: cont.height });
         if (type === 'col') scheduleCollageAutoGenerate();
     };
     document.getElementById('portraitRotateSlider').addEventListener('input', e => {
