@@ -421,6 +421,13 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
         }
         .canvas-wrap input.cell-name-edit.show { display: block; }
+        .canvas-wrap .cell-name-ghost {
+            display: none; position: absolute; z-index: 7; box-sizing: border-box; pointer-events: none;
+            height: 34px; line-height: 30px; padding: 0 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 14px; font-weight: 700; color: var(--primary);
+            background: #fff; border: 2px solid var(--primary); border-radius: 8px; box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
+        }
+        .canvas-wrap .cell-name-ghost.show { display: block; }
 
         /* 스탠딩 너비·높이 조절 바: 미리보기에 마우스를 올렸을 때만 스탠딩(반신) 바로 밑에 표시 (위치는 JS에서 계산) */
         .side-width-bar {
@@ -434,10 +441,8 @@
             background: #fff; border: 1px solid var(--line-strong); border-radius: 10px;
             box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
         }
-        .canvas-wrap.has-side .side-width-bar, .canvas-wrap.bg-edit .side-width-bar { display: block; }
-        .side-width-bar .bar-row.bg-only { display: none; }
-        .canvas-wrap.bg-edit .side-width-bar .bar-row.bg-only { display: flex; }
-        .canvas-wrap.bg-edit .side-width-bar .bar-row.side-only { display: none; }
+        .canvas-wrap.has-side .side-width-bar { display: block; }
+        .canvas-wrap.bg-edit .side-width-bar { display: none; } /* 배경을 조작하는 동안에는 스탠딩 조절 바 숨김 */
         .canvas-wrap.has-side:hover .side-width-bar,
         .canvas-wrap.has-side .side-width-bar:focus-within { opacity: 1; pointer-events: auto; }
         .side-width-bar .bar-row { display: flex; align-items: center; gap: 8px; }
@@ -487,6 +492,16 @@
             font-size: 12.5px; opacity: 0; pointer-events: none; transition: opacity .15s;
         }
         .canvas-wrap.has-bg .bg-edit-toggle { display: inline-flex; }
+        /* 배경 이미지 투명도: 조작 중일 때 캔버스 바깥 위쪽에 별도 상자로 표시 */
+        .bg-opacity-pop {
+            display: none; position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 7;
+            align-items: center; gap: 8px; padding: 8px 12px; white-space: nowrap;
+            background: #fff; border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
+            font-size: 12px; font-weight: 600; color: #334155;
+        }
+        .bg-opacity-pop input[type="range"] { width: 160px; flex: none; }
+        .canvas-wrap.bg-edit .bg-opacity-pop { display: flex; }
+        .preview-stage:has(.canvas-wrap.bg-edit) { padding-top: 52px; } /* 투명도 상자가 위쪽 제목을 가리지 않도록 자리 확보 */
         .canvas-wrap.has-bg:hover .bg-edit-toggle,
         .canvas-wrap.bg-edit .bg-edit-toggle { opacity: 1; pointer-events: auto; }
         .canvas-wrap.bg-edit .bg-edit-toggle { border-color: var(--primary); color: var(--primary); }
@@ -894,9 +909,11 @@
                 <div class="preview-stage">
                     <div class="canvas-wrap" id="canvasWrap">
                         <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
-                        <div class="cell-hover" id="cellHover" data-tip="이름 클릭: 이름 수정 · 더블클릭: 크롭 · 드래그: 순서 변경"><span>✂️ 더블클릭해서 크롭</span></div>
+                        <div class="cell-hover" id="cellHover" data-tip="드래그로 순서 변경 가능"><span>✂️ 더블클릭해서 크롭</span></div>
                         <!-- 최종 미리보기에서 표정 칸을 더블클릭하면 나타나는 이름 입력칸 -->
                         <input type="text" class="cell-name-edit" id="cellNameEdit" placeholder="표정 이름">
+                        <!-- 표정 칸에 마우스를 올리면 이름 자리에 미리 보여주는 이름 칸 (누르면 바로 수정) -->
+                        <div class="cell-name-edit cell-name-ghost" id="cellNameGhost"></div>
                         <div class="side-width-bar" id="sideWidthBar">
                             <div class="bar-box">
                             <div class="bar-row side-only">
@@ -912,15 +929,16 @@
                             <div class="bar-row side-only">
                                 <button type="button" id="btnSideAlignBottom" class="sub-btn bar-btn">⤓ 스탠딩 아래로 정렬</button>
                             </div>
-                            <div class="bar-row bg-only">
-                                <span>배경 이미지 투명도</span>
-                                <input type="range" id="bgOpacitySlider" min="0" max="100" step="1" value="40">
-                                <span class="num-edit"><input type="number" id="bgOpacityValue" value="40" min="0" max="100" step="1"><i>%</i></span>
-                            </div>
                             </div>
                         </div>
                         <!-- 배경을 추가하면 미리보기에 마우스를 올렸을 때 스탠딩 위쪽에 나타나는 체크박스 -->
                         <label class="check bg-edit-toggle" id="bgEditToggleWrap"><input type="checkbox" id="bgEditToggle"> 배경 설정 조작</label>
+                        <!-- '배경 설정 조작'을 켜면 미리보기 캔버스 바깥 위쪽에 따로 나타나는 배경 이미지 투명도 -->
+                        <div class="bg-opacity-pop" id="bgOpacityPop">
+                            <span>배경 이미지 투명도</span>
+                            <input type="range" id="bgOpacitySlider" min="0" max="100" step="1" value="40">
+                            <span class="num-edit"><input type="number" id="bgOpacityValue" value="40" min="0" max="100" step="1"><i>%</i></span>
+                        </div>
                     </div>
                 </div>
 
@@ -2737,7 +2755,21 @@
             if (item) openItemCropModal(item.dataset.id);
         });
         const hover = document.getElementById('cellHover');
-        const hideCellHover = () => hover.classList.remove('show');
+        const nameGhost = document.getElementById('cellNameGhost');
+        // 표정 이름 칸(입력칸·미리보기 칸) 위치: 이름 영역 가운데, 칸 밖으로 나가지 않게
+        const labelBoxPos = (idx) => {
+            const L = lastCollageLayout;
+            const b = L && L.labels && L.labels[idx];
+            if (!b) return null;
+            const k = cvs.getBoundingClientRect().width / cvs.width;
+            const col = idx % L.cols;
+            const cellX = (L.offsetX + col * (L.w + L.gap)) * k, cellW = L.w * k;
+            const width = Math.min(cellW - 8, Math.max(120, b.w * k + 24));
+            const centerX = (b.x + b.w / 2) * k;
+            const left = Math.max(cellX + 4, Math.min(centerX - width / 2, cellX + cellW - 4 - width));
+            return { left, top: (b.y + b.h / 2) * k - 17, width };
+        };
+        const hideCellHover = () => { hover.classList.remove('show'); nameGhost.classList.remove('show'); };
         const showCellHover = (idx) => {
             const L = lastCollageLayout;
             const k = cvs.getBoundingClientRect().width / cvs.width;
@@ -2747,6 +2779,16 @@
             hover.style.width = L.w * k + 'px';
             hover.style.height = L.h * k + 'px';
             hover.classList.add('show');
+            // 이름 칸도 같이 보여주기 (순서 바꾸는 중이거나 이름을 고치는 중이면 숨김)
+            const pos = (isDragging || document.getElementById('cellNameEdit').classList.contains('show')) ? null : labelBoxPos(idx);
+            const item = document.querySelectorAll('.collage-item')[idx];
+            if (pos && item) {
+                nameGhost.style.left = pos.left + 'px';
+                nameGhost.style.top = pos.top + 'px';
+                nameGhost.style.width = pos.width + 'px';
+                nameGhost.textContent = item.querySelector('input').value || '표정 이름';
+                nameGhost.classList.add('show');
+            } else nameGhost.classList.remove('show');
         };
         cvs.addEventListener('mousemove', (e) => {
             if (isDragging) { if (dragTarget !== 'cell') hideCellHover(); return; }
@@ -2772,19 +2814,11 @@
         };
         function openNameEdit(idx) {
             const item = document.querySelectorAll('.collage-item')[idx];
-            const L = lastCollageLayout;
-            const b = L && L.labels[idx];
-            if (!item || !b) return;
-            const k = cvs.getBoundingClientRect().width / cvs.width;
-            const col = idx % L.cols;
-            const cellX = (L.offsetX + col * (L.w + L.gap)) * k, cellW = L.w * k;
-            // 이름 영역 가운데에 맞추되 칸 밖으로 나가지 않게
-            const editW = Math.min(cellW - 8, Math.max(120, b.w * k + 24));
-            const centerX = (b.x + b.w / 2) * k;
-            const left = Math.max(cellX + 4, Math.min(centerX - editW / 2, cellX + cellW - 4 - editW));
-            nameEdit.style.width = editW + 'px';
-            nameEdit.style.left = left + 'px';
-            nameEdit.style.top = ((b.y + b.h / 2) * k - 17) + 'px';
+            const pos = labelBoxPos(idx);
+            if (!item || !pos) return;
+            nameEdit.style.width = pos.width + 'px';
+            nameEdit.style.left = pos.left + 'px';
+            nameEdit.style.top = pos.top + 'px';
             nameEdit.value = item.querySelector('input').value;
             nameEditItem = item;
             hideCellHover();
@@ -3086,6 +3120,8 @@
             bar.style.left = Math.max(0, Math.min(anchorX, viewW - barW)) + 'px';
             bar.style.width = barW + 'px';
             document.getElementById('bgEditToggleWrap').style.left = (anchorX + 8) + 'px';
+            const pop = document.getElementById('bgOpacityPop');
+            pop.style.left = Math.max(0, Math.min(anchorX, viewW - (pop.offsetWidth || 330))) + 'px';
         }
 
         if (isDownload) {
