@@ -83,7 +83,13 @@
         .container { max-width: 1140px; margin: 0 auto; }
         .tab-content { display: none; }
         .tab-content.active { display: flex; flex-direction: column; gap: 20px; animation: tabFade .25s ease; }
-        #tab-cutin.active { padding-bottom: 90px; } /* 화면 하단 고정 카드에 내용이 가려지지 않도록 */
+        #tab-cutin.active { padding-bottom: 90px; }
+        /* 두상 탭에 파일을 끌고 들어오면 화면이 살짝 파래짐 */
+        #tab-headshot { position: relative; }
+        #tab-headshot.drop-over::after {
+            content: ''; position: absolute; inset: -8px; z-index: 60; pointer-events: none;
+            background: rgba(59, 130, 246, .10); border-radius: var(--radius);
+        } /* 화면 하단 고정 카드에 내용이 가려지지 않도록 */
 
         /* =========================================================
            3. 섹션 카드
@@ -114,10 +120,6 @@
         .dropzone { cursor: pointer; } /* 빈 곳 어디를 눌러도 파일 선택 창이 열림 */
         .dropzone:hover { border-color: var(--primary-line); background: #fbfdff; }
         .dropzone .file-list-container { cursor: default; }
-        .dropzone-icon {
-            width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 12px; display: grid; place-items: center;
-            background: var(--primary-soft); font-size: 22px;
-        }
         .dropzone-title { display: block; margin: 0 0 14px; font-size: 16px; font-weight: 700; color: var(--text); }
         .dropzone p { margin: -8px 0 14px; font-size: 13px; color: var(--text-2); }
         .dropzone input[type="file"] { max-width: 480px; margin: 0 auto; display: block; }
@@ -342,6 +344,9 @@
         .sub-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
         .sub-head h4 { margin: 0; font-size: 15.5px; font-weight: 800; color: var(--text); }
         .sub-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        details.card-list > summary.sub-head { display: flex; cursor: pointer; }
+        details.card-list > summary h4 { display: flex; align-items: center; gap: 6px; }
+        details.card-list:not([open]) > summary.sub-head { margin-bottom: 22px; }
         .sub-head h4 .num { color: var(--primary); margin-right: 4px; }
 
         /* 표정 목록 (이름·순서 수정) — 일반 input 규칙보다 뒤에 있어야 함 */
@@ -407,6 +412,15 @@
             white-space: nowrap; background: #0f172a; color: #fff; font-size: 12px; font-weight: 500;
             padding: 6px 10px; border-radius: 7px; box-shadow: 0 4px 12px rgba(15, 23, 42, .2);
         }
+
+        /* 최종 미리보기 위 표정 이름 바로 수정 */
+        .canvas-wrap input.cell-name-edit {
+            display: none; position: absolute; z-index: 8; box-sizing: border-box;
+            height: 34px; padding: 0 10px; text-align: center; font-family: inherit; font-size: 14px; font-weight: 700;
+            color: var(--primary); background: #fff; border: 2px solid var(--primary); border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
+        }
+        .canvas-wrap input.cell-name-edit.show { display: block; }
 
         /* 스탠딩 너비·높이 조절 바: 미리보기에 마우스를 올렸을 때만 스탠딩(반신) 바로 밑에 표시 (위치는 JS에서 계산) */
         .side-width-bar {
@@ -477,7 +491,7 @@
         .canvas-wrap.bg-edit .bg-edit-toggle { opacity: 1; pointer-events: auto; }
         .canvas-wrap.bg-edit .bg-edit-toggle { border-color: var(--primary); color: var(--primary); }
 
-        .final-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .final-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 
         /* =========================================================
            10. 컷인 탭 하단 고정 링크 카드 (다인 컷인 에디터)
@@ -719,7 +733,6 @@
     <!-- ========== 탭 2: 스탠딩 ========== -->
     <div id="tab-portrait" class="tab-content active">
         <div class="dropzone">
-            <div class="dropzone-icon">📥</div>
             <span class="dropzone-title">파일 불러오기 및 추가</span>
             <p id="portraitDzHint" style="display: none;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다. 첫 번째 파일이 미리보기에 사용돼요.</p>
             <input type="file" id="filePortrait" accept="image/*" multiple>
@@ -858,13 +871,16 @@
             </div>
 
             <div class="collage-preview-wrapper" id="collagePreviewArea" style="display: none;">
-                <div class="sub-head">
-                    <div>
-                        <h4><span class="num">①</span>포트레이트 이름 및 순서 수정</h4>
-                        <p class="help-text">드래그로도 순서를 변경할 수 있습니다.</p>
-                    </div>
-                </div>
-                <div class="collage-grid" id="collageGrid"></div>
+                <!-- ① 표정 카드 목록: 제목·설명만 보이고, 누르면 펼쳐짐 -->
+                <details class="collapsible card-list">
+                    <summary class="sub-head">
+                        <div>
+                            <h4><span class="num">①</span>포트레이트별 이름 및 순서 수정<span class="caret" aria-hidden="true">▼</span></h4>
+                            <p class="help-text">드래그로도 순서를 변경할 수 있습니다. 실루엣, 블러 적용 가능.</p>
+                        </div>
+                    </summary>
+                    <div class="collage-grid" id="collageGrid"></div>
+                </details>
 
                 <div class="sub-head">
                     <div>
@@ -878,7 +894,9 @@
                 <div class="preview-stage">
                     <div class="canvas-wrap" id="canvasWrap">
                         <canvas id="finalCollageCanvas" style="max-width: 100%; display: none;"></canvas>
-                        <div class="cell-hover" id="cellHover" data-tip="눌러서 크롭 (전체 또는 이 표정만)"><span>✂️ 눌러서 크롭</span></div>
+                        <div class="cell-hover" id="cellHover" data-tip="이름 클릭: 이름 수정 · 더블클릭: 크롭 · 드래그: 순서 변경"><span>✂️ 더블클릭해서 크롭</span></div>
+                        <!-- 최종 미리보기에서 표정 칸을 더블클릭하면 나타나는 이름 입력칸 -->
+                        <input type="text" class="cell-name-edit" id="cellNameEdit" placeholder="표정 이름">
                         <div class="side-width-bar" id="sideWidthBar">
                             <div class="bar-box">
                             <div class="bar-row side-only">
@@ -1000,6 +1018,7 @@
                 <div class="final-actions">
                     <button id="btnCollageBackup" class="sub-btn soft lg">💾 설정 백업</button>
                     <button id="btnDownloadCollagePieces" class="sub-btn warm lg">파일명 반영 원본 다운로드</button>
+                    <button id="btnOpenNameCopy" class="sub-btn soft lg has-tip" data-tip="새 창에서 표정을 누르면 @표정명이 복사돼요">표정명 복사</button>
                 </div>
             </div>
         </section>
@@ -1008,7 +1027,6 @@
     <!-- ========== 탭 3: 컷인 ========== -->
     <div id="tab-cutin" class="tab-content">
         <div class="dropzone">
-            <div class="dropzone-icon">📥</div>
             <span class="dropzone-title">파일 불러오기 및 추가</span>
             <p id="cutinDzHint" style="display: none;">파일 선택 버튼을 눌러 이미지를 계속 추가할 수 있습니다.</p>
             <input type="file" id="fileCutin" accept="image/*" multiple>
@@ -1689,6 +1707,41 @@
         num.addEventListener('blur', () => { num.value = slider.value; });     // 범위를 벗어난 값은 실제 적용값으로 표시
     });
 
+    // 두상 탭: 탭 안 어디에 이미지를 끌어다 놓아도 새 두상 이미지로 불러온다
+    (() => {
+        const tab = document.getElementById('tab-headshot');
+        const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+        let depth = 0;
+        const isActive = () => tab.classList.contains('active');
+        document.addEventListener('dragenter', e => {
+            if (!isActive() || !hasFiles(e)) return;
+            depth++; tab.classList.add('drop-over');
+        });
+        document.addEventListener('dragleave', e => {
+            if (!isActive() || !hasFiles(e)) return;
+            depth = Math.max(0, depth - 1);
+            if (!depth) tab.classList.remove('drop-over');
+        });
+        document.addEventListener('dragover', e => {
+            if (!isActive() || !hasFiles(e)) return;
+            e.preventDefault(); // 브라우저가 파일을 새 탭으로 여는 것을 막음
+            e.dataTransfer.dropEffect = 'copy';
+        });
+        document.addEventListener('drop', e => {
+            if (!isActive() || !hasFiles(e)) return;
+            e.preventDefault();
+            depth = 0; tab.classList.remove('drop-over');
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 1) { alert('두상은 한 번에 한 장씩만 불러올 수 있습니다.'); return; }
+            const file = files[0];
+            if (!file || !file.type.startsWith('image/')) { alert('이미지 파일만 불러올 수 있어요.'); return; }
+            const input = document.getElementById('fileHeadshot');
+            const dt = new DataTransfer(); dt.items.add(file);
+            input.files = dt.files;
+            input.dispatchEvent(new Event('change'));
+        });
+    })();
+
     // 미리보기 박스 초기 크기
     resizeCanvasBox('hs', 1, 1); resizeCanvasBox('pt', 460, 800); resizeCanvasBox('col', 460, 460); resizeCanvasBox('ci', 1200, 400);
 
@@ -1880,20 +1933,24 @@
         if(f_pt.length) { stashCropRelative('col'); loadCropper('col'); }
     }));
 
+    // 회전 버튼: 이미지가 없어도 각도 표시(슬라이더·입력칸)는 바뀌고, 이미지가 있으면 바로 적용
     window.rotateManual = (type, deg) => {
-        let c = type === 'pt' ? c_pt : c_col; if(!c) return;
+        let c = type === 'pt' ? c_pt : c_col;
         const sldId = type === 'pt' ? 'portraitRotateSlider' : 'colRotateSlider';
         const valId = type === 'pt' ? 'ptRotateValue' : 'colRotateValue';
         const sld = document.getElementById(sldId);
         let v = parseInt(sld.value) + deg; if(v > 180) v -= 360; if(v < -180) v += 360;
-        sld.value = v; document.getElementById(valId).value = v; c.rotateTo(v);
+        sld.value = v; document.getElementById(valId).value = v;
+        if (!c) return;
+        c.rotateTo(v);
         if (type === 'col') scheduleCollageAutoGenerate();
     };
     window.resetManual = (type) => {
-        let c = type === 'pt' ? c_pt : c_col; if(!c) return;
+        let c = type === 'pt' ? c_pt : c_col;
         const sldId = type === 'pt' ? 'portraitRotateSlider' : 'colRotateSlider';
         const valId = type === 'pt' ? 'ptRotateValue' : 'colRotateValue';
         document.getElementById(sldId).value = 0; document.getElementById(valId).value = 0;
+        if (!c) return;
         c.reset();
         if (type === 'col') scheduleCollageAutoGenerate();
     };
@@ -2557,14 +2614,24 @@
             await requestRedraw();
         }, { passive: false });
 
-        let dragTarget = 'side'; // 'side' | 'bg'
+        let dragTarget = 'side'; // 'side' | 'bg' | 'cell'
+        let dragCellIdx = -1, dragStartX = 0, dragStartY = 0, dragMoved = false;
+        const HOVER_TEXT = '✂️ 더블클릭해서 크롭';
         cvs.addEventListener('mousedown', (e) => {
             if (bgEditing()) {
                 if (!bgState.img) return;
                 dragTarget = 'bg';
             } else {
-                if(!document.getElementById('colSideImg').files[0]) return;
-                dragTarget = 'side';
+                // 표정 칸(이름 글자 제외)을 끌면 순서 바꾸기, 그 밖(스탠딩)을 끌면 스탠딩 이동
+                const ci = cellAt(e);
+                if (ci >= 0 && labelAt(e) < 0) {
+                    dragTarget = 'cell';
+                    dragCellIdx = ci; dragMoved = false;
+                    dragStartX = e.clientX; dragStartY = e.clientY;
+                } else {
+                    if(!document.getElementById('colSideImg').files[0]) return;
+                    dragTarget = 'side';
+                }
             }
             isDragging = true;
             lastX = e.clientX; lastY = e.clientY;
@@ -2572,6 +2639,16 @@
         });
         window.addEventListener('mousemove', async (e) => {
             if(!isDragging) return;
+            if (dragTarget === 'cell') {
+                if (Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY) > 4) dragMoved = true;
+                if (!dragMoved) return;
+                const t = cellAt(e);
+                if (t >= 0) {
+                    showCellHover(t);
+                    hover.querySelector('span').innerText = t === dragCellIdx ? '↕ 옮길 칸에 놓으세요' : '여기로 이동';
+                } else hideCellHover();
+                return;
+            }
             const ratio = (cvs.width || 1) / (cvs.offsetWidth || 1);
             if (dragTarget === 'bg') {
                 bgState.offX += (e.clientX - lastX) * ratio;
@@ -2583,10 +2660,24 @@
             lastX = e.clientX; lastY = e.clientY;
             await requestRedraw();
         });
-        window.addEventListener('mouseup', () => {
+        window.addEventListener('mouseup', (e) => {
             if(!isDragging) return;
             isDragging = false;
             cvs.style.cursor = 'grab';
+            if (dragTarget === 'cell') {
+                hover.querySelector('span').innerText = HOVER_TEXT;
+                hideCellHover();
+                if (!dragMoved) return;
+                const t = cellAt(e);
+                const grid = document.getElementById('collageGrid');
+                const cards = Array.from(grid.children);
+                const src = cards[dragCellIdx], dst = cards[t];
+                if (t < 0 || !src || !dst || t === dragCellIdx) return;
+                // 놓은 칸 자리로 이동 (뒤로 옮기면 그 칸 뒤, 앞으로 옮기면 그 칸 앞)
+                grid.insertBefore(src, dragCellIdx < t ? dst.nextSibling : dst);
+                syncFilesToCollageOrder();
+                scheduleAutoPreview();
+            }
         });
 
         cvs.addEventListener('touchstart', (e) => {
@@ -2621,11 +2712,27 @@
             const idx = row * L.cols + col;
             return idx < L.count ? idx : -1;
         };
+        // 캔버스 좌표로 표정 이름 영역을 찾는다 (없으면 -1)
+        const labelAt = (e) => {
+            const L = lastCollageLayout;
+            if (!L || !L.labels) return -1;
+            const r = cvs.getBoundingClientRect();
+            const k = cvs.width / r.width;
+            const x = (e.clientX - r.left) * k, y = (e.clientY - r.top) * k;
+            return L.labels.findIndex(b => b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+        };
+        // 한 번 클릭: 표정 이름을 누르면 바로 수정 / 더블클릭: 그 표정 크롭 창
         cvs.addEventListener('click', (e) => {
             if (bgEditing()) return;
             if (Math.hypot(e.clientX - downX, e.clientY - downY) > 4) return;
+            const li = labelAt(e);
+            if (li >= 0) openNameEdit(li);
+        });
+        cvs.addEventListener('dblclick', (e) => {
+            if (bgEditing()) return;
             const idx = cellAt(e);
             if (idx < 0) return;
+            closeNameEdit(false);
             const item = document.querySelectorAll('.collage-item')[idx];
             if (item) openItemCropModal(item.dataset.id);
         });
@@ -2642,13 +2749,54 @@
             hover.classList.add('show');
         };
         cvs.addEventListener('mousemove', (e) => {
-            if (isDragging) { hideCellHover(); return; }
+            if (isDragging) { if (dragTarget !== 'cell') hideCellHover(); return; }
             if (bgEditing()) { hideCellHover(); cvs.style.cursor = bgState.img ? 'move' : 'default'; return; }
             const idx = cellAt(e);
             if (idx >= 0) showCellHover(idx); else hideCellHover();
-            cvs.style.cursor = idx >= 0 ? 'pointer' : (document.getElementById('colSideImg').files[0] ? 'grab' : 'default');
+            cvs.style.cursor = labelAt(e) >= 0 ? 'text' : idx >= 0 ? 'pointer' : (document.getElementById('colSideImg').files[0] ? 'grab' : 'default');
         });
         cvs.addEventListener('mouseleave', hideCellHover);
+
+        // 더블클릭: 그 칸의 표정 이름 위치에 입력칸을 띄워 바로 수정 (엔터·바깥 클릭으로 적용, Esc로 취소)
+        const nameEdit = document.getElementById('cellNameEdit');
+        let nameEditItem = null;
+        const closeNameEdit = (apply) => {
+            if (!nameEditItem) return;
+            if (apply) {
+                const input = nameEditItem.querySelector('input');
+                input.value = nameEdit.value;
+                input.dispatchEvent(new Event('input'));
+            }
+            nameEditItem = null;
+            nameEdit.classList.remove('show');
+        };
+        function openNameEdit(idx) {
+            const item = document.querySelectorAll('.collage-item')[idx];
+            const L = lastCollageLayout;
+            const b = L && L.labels[idx];
+            if (!item || !b) return;
+            const k = cvs.getBoundingClientRect().width / cvs.width;
+            const col = idx % L.cols;
+            const cellX = (L.offsetX + col * (L.w + L.gap)) * k, cellW = L.w * k;
+            // 이름 영역 가운데에 맞추되 칸 밖으로 나가지 않게
+            const editW = Math.min(cellW - 8, Math.max(120, b.w * k + 24));
+            const centerX = (b.x + b.w / 2) * k;
+            const left = Math.max(cellX + 4, Math.min(centerX - editW / 2, cellX + cellW - 4 - editW));
+            nameEdit.style.width = editW + 'px';
+            nameEdit.style.left = left + 'px';
+            nameEdit.style.top = ((b.y + b.h / 2) * k - 17) + 'px';
+            nameEdit.value = item.querySelector('input').value;
+            nameEditItem = item;
+            hideCellHover();
+            nameEdit.classList.add('show');
+            nameEdit.focus();
+            nameEdit.select();
+        }
+        nameEdit.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); closeNameEdit(true); }
+            else if (e.key === 'Escape') { closeNameEdit(false); }
+        });
+        nameEdit.addEventListener('blur', () => closeNameEdit(true));
         cvs.addEventListener('mousedown', hideCellHover);
     })();
 
@@ -2683,10 +2831,10 @@
         const S = lastCollageLayout && lastCollageLayout.side;
         if (!file || !S) return;
         const ratio = await getSideContentBottomRatio(file);
-        const H = S.h, k = globalSideScale;
-        // 그릴 때 이미지 중심 y = gap + H/2 + sideOffsetY, 표시 높이 = H*k
-        // 보이는 아래 끝 = 중심 - H*k/2 + ratio*H*k  →  이것이 영역 바닥(gap + H)이 되도록
-        sideOffsetY = H / 2 + H * k / 2 - ratio * H * k;
+        const B = S.baseH, k = globalSideScale;
+        // 그릴 때 이미지 중심 y = B/2 + sideOffsetY, 표시 높이 = B*k
+        // 보이는 아래 끝 = 중심 - B*k/2 + ratio*B*k  →  이것이 캔버스에서 보이는 바닥(S.bottom)이 되도록
+        sideOffsetY = S.bottom - B / 2 + B * k / 2 - ratio * B * k;
         await requestRedraw();
     });
 
@@ -2736,9 +2884,11 @@
                 sideImg = null;
             } else {
                 sideAreaH = sideAreaHeight > 0 ? sideAreaHeight : gridH;
-                sideBaseH = sideAreaH;
+                // 캔버스를 꽉 채우도록 위아래 여백까지 포함한 높이로 그린다 (여백 때문에 아래가 비어 보이지 않게)
+                sideBaseH = sideAreaH + gap * 2;
                 sideBaseW = sideImg.naturalWidth * (sideBaseH / sideImg.naturalHeight);
-                sideAreaW = sideAreaWidth > 0 ? sideAreaWidth : Math.round(sideBaseW);
+                // 자동 너비: 바깥 여백부터 이미지가 끝나는 지점까지
+                sideAreaW = sideAreaWidth > 0 ? sideAreaWidth : Math.max(1, Math.round(sideBaseW - gap));
             }
         }
 
@@ -2785,10 +2935,10 @@
             ctx.beginPath();
             ctx.rect(0, 0, cvs.width, Math.min(cvs.height, sideAreaH + gap * 2));
             ctx.clip();
-            // 바깥쪽 끝 기준으로 배치: 좌측 배치면 이미지 왼쪽 끝을 영역 왼쪽에, 우측 배치면 오른쪽 끝을 영역 오른쪽에 맞춘다
-            // (영역 너비를 줄여도 캔버스 밖으로 잘려 나가지 않고, 넘치는 부분은 포트레이트 칸 뒤로 이어짐)
-            const sideCenterX = sideOnRight ? sideX + sideAreaW - sideBaseW / 2 : sideX + sideBaseW / 2;
-            ctx.translate(sideCenterX + sideOffsetX, gap + sideBaseH / 2 + sideOffsetY);
+            // 캔버스 바깥 끝(여백 포함)에 맞춰 배치: 좌측 배치면 이미지 왼쪽 끝을 캔버스 왼쪽 끝에, 우측 배치면 오른쪽 끝에 맞춘다
+            // (위아래·바깥쪽 여백까지 꽉 채우고, 영역 너비를 줄여도 넘치는 부분은 포트레이트 칸 뒤로 이어짐)
+            const sideCenterX = sideOnRight ? cvs.width - sideBaseW / 2 : sideBaseW / 2;
+            ctx.translate(sideCenterX + sideOffsetX, sideBaseH / 2 + sideOffsetY);
             ctx.scale(globalSideScale, globalSideScale);
             ctx.drawImage(sideImg, -sideBaseW / 2, -sideBaseH / 2, sideBaseW, sideBaseH);
             ctx.restore();
@@ -2797,7 +2947,11 @@
         const offsetX = gap + (sideImg && !sideOnRight ? sideAreaW + gap : 0);
         if (!isDownload) lastCollageLayout = {
             offsetX, gap, w, h, cols, count: items.length,
-            side: sideImg ? { x: sideX, y: gap, w: sideAreaW, h: sideAreaH } : null // 스탠딩 영역 (휠 확대 판정용)
+            labels: [],                                                // 칸별 표정 이름 영역 (클릭하면 이름 수정)
+            side: sideImg ? {
+                x: sideX, y: gap, w: sideAreaW, h: sideAreaH,          // 스탠딩 영역 (휠 확대 판정용)
+                baseH: sideBaseH, bottom: Math.min(cvs.height, sideAreaH + gap * 2) // 그리는 높이 · 보이는 바닥(아래로 정렬용)
+            } : null
         };
 
 
@@ -2838,14 +2992,22 @@
                         ctx.drawImage(tmpImg, tx, ty, w, h);
                     }
 
+                    // 표정 이름: 크기(비우면 자동) / 세로(상단·하단) / 가로(좌측·중앙·우측)
+                    const fs = parseInt(document.getElementById('colLabelSize').value) || Math.max(20, Math.floor(w * 0.12));
+                    const labelV = document.getElementById('colLabelV').value;
+                    const labelH = document.getElementById('colLabelH').value;
+                    const padX = fs * 0.3, padY = fs * 0.2;
+                    const lx = labelH === 'left' ? tx + padX : (labelH === 'right' ? tx + w - padX : tx + w / 2);
+                    const ly = labelV === 'top' ? ty + padY : ty + h - padY;
+                    if (!isDownload && !isNameOff) {
+                        // 클릭으로 이름을 고칠 수 있는 영역 기록 (이름이 비어 있어도 그 자리를 누를 수 있게 최소 너비 확보)
+                        ctx.font = `900 ${fs}px ${fontFamily}`;
+                        const tw = Math.max(text ? ctx.measureText(text).width : 0, w * 0.4);
+                        const rx = labelH === 'left' ? lx : (labelH === 'right' ? lx - tw : lx - tw / 2);
+                        const ry = labelV === 'top' ? ly : ly - fs;
+                        lastCollageLayout.labels[i] = { x: rx - 6, y: ry - 6, w: tw + 12, h: fs + 12 };
+                    }
                     if (text && !isNameOff) {
-                        // 표정 이름: 크기(비우면 자동) / 세로(상단·하단) / 가로(좌측·중앙·우측)
-                        const fs = parseInt(document.getElementById('colLabelSize').value) || Math.max(20, Math.floor(w * 0.12));
-                        const labelV = document.getElementById('colLabelV').value;
-                        const labelH = document.getElementById('colLabelH').value;
-                        const padX = fs * 0.3, padY = fs * 0.2;
-                        const lx = labelH === 'left' ? tx + padX : (labelH === 'right' ? tx + w - padX : tx + w / 2);
-                        const ly = labelV === 'top' ? ty + padY : ty + h - padY;
                         ctx.font = `900 ${fs}px ${fontFamily}`;
                         ctx.textAlign = labelH; ctx.textBaseline = labelV === 'top' ? 'top' : 'bottom';
                         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(4, fs * 0.25); ctx.lineJoin = 'round';
@@ -2976,8 +3138,8 @@
         btnL.innerText = '◀'; btnL.className = 'has-tip'; btnL.dataset.tip = '앞으로 이동';
         const btnR = document.createElement('button');
         btnR.innerText = '▶'; btnR.className = 'has-tip'; btnR.dataset.tip = '뒤로 이동';
-        btnL.onclick = () => { if(item.previousElementSibling) { gridArea.insertBefore(item, item.previousElementSibling); scheduleAutoPreview(); } };
-        btnR.onclick = () => { if(item.nextElementSibling) { gridArea.insertBefore(item.nextElementSibling, item); scheduleAutoPreview(); } };
+        btnL.onclick = () => { if(item.previousElementSibling) { gridArea.insertBefore(item, item.previousElementSibling); syncFilesToCollageOrder(); scheduleAutoPreview(); } };
+        btnR.onclick = () => { if(item.nextElementSibling) { gridArea.insertBefore(item.nextElementSibling, item); syncFilesToCollageOrder(); scheduleAutoPreview(); } };
 
         // 실루엣 / 블러 버튼을 분리 (둘은 동시에 켜지지 않고, 하나를 켜면 다른 하나는 꺼짐)
         const btnSil = document.createElement('button');
@@ -3424,6 +3586,24 @@
         }
     }
 
+    // 반대 방향: 2-2 표정 목록(①·② 어디서 바꿨든) 순서에 맞춰 첨부 파일 목록 순서도 바꾼다
+    function syncFilesToCollageOrder() {
+        const order = Array.from(document.querySelectorAll('#collageGrid .collage-item')).map(el => el.dataset.id);
+        const rank = new Map(order.map((id, i) => [id, i]));
+        const wasFirstId = f_ptIds[0];
+        const pairs = f_pt.map((f, i) => ({ f, id: f_ptIds[i], i }));
+        // 표정 목록에 있는 파일은 그 순서대로, 없는 파일은 원래 순서대로 뒤에
+        pairs.sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1e9 + a.i) - (rank.has(b.id) ? rank.get(b.id) : 1e9 + b.i));
+        f_pt = pairs.map(p => p.f);
+        f_ptIds = pairs.map(p => p.id);
+        renderPortraitFileList();
+        if (f_ptIds[0] !== wasFirstId && f_pt[0]) {
+            // 맨 앞 파일이 바뀌면 크롭 미리보기 기준 이미지도 바꾼다 (맞춰둔 위치·배율은 유지)
+            stashCropVerbatim('pt'); stashCropVerbatim('col');
+            loadCropper('pt'); loadCropper('col');
+        }
+    }
+
     // 첨부 파일 목록 순서에 맞춰 2-2 표정 목록(→ 최종 미리보기) 순서를 다시 정렬
     function syncCollageOrderToFiles() {
         const grid = document.getElementById('collageGrid');
@@ -3439,7 +3619,7 @@
     const gridEl = document.getElementById('collageGrid');
     let draggedItem = null;
     gridEl.addEventListener('dragstart', e => { draggedItem = e.target.closest('.collage-item'); if (draggedItem) setTimeout(()=>draggedItem.style.opacity='0.5',0); });
-    gridEl.addEventListener('dragend', () => { if(draggedItem){ draggedItem.style.opacity='1'; draggedItem = null; scheduleAutoPreview(); }});
+    gridEl.addEventListener('dragend', () => { if(draggedItem){ draggedItem.style.opacity='1'; draggedItem = null; syncFilesToCollageOrder(); scheduleAutoPreview(); }});
     gridEl.addEventListener('dragover', e => {
         e.preventDefault(); const t = e.target.closest('.collage-item');
         if (t && draggedItem && t !== draggedItem) {
@@ -3465,6 +3645,65 @@
     }
 
     // '캐릭터명_표정' 파일명으로 "크롭하지 않은 첨부 원본 파일"을 그대로 저장 (이름만 변경)
+    // 표정명 복사: 최종 미리보기를 새 창에 띄우고, 표정 칸을 누르면 "@표정명"을 클립보드에 복사 (다른 기능 없음)
+    document.getElementById('btnOpenNameCopy').addEventListener('click', async () => {
+        await requestRedraw();
+        const cvs = document.getElementById('finalCollageCanvas');
+        const L = lastCollageLayout;
+        if (!cvs.width || !L) { alert('먼저 최종 이미지 미리보기를 만들어 주세요.'); return; }
+        const W = cvs.width, H = cvs.height;
+        const cells = Array.from(document.querySelectorAll('#collageGrid .collage-item')).map((item, i) => {
+            const col = i % L.cols, row = Math.floor(i / L.cols);
+            return {
+                name: item.querySelector('input').value.trim(),
+                left: (L.offsetX + col * (L.w + L.gap)) / W * 100,
+                top: (L.gap + row * (L.h + L.gap)) / H * 100,
+                width: L.w / W * 100,
+                height: L.h / H * 100
+            };
+        }).filter(c => c.name);
+        const win = window.open('', '_blank');
+        if (!win) { alert('팝업이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 눌러 주세요.'); return; }
+        const data = JSON.stringify(cells).replace(/</g, '\\u003c');
+        win.document.open();
+        win.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>표정명 복사</title>
+<style>
+  body { margin: 0; padding: 16px; background: #f3f5f9; font-family: Pretendard, -apple-system, system-ui, 'Malgun Gothic', sans-serif; display: flex; flex-direction: column; align-items: center; }
+  .hint { margin: 0 0 12px; font-size: 13px; color: #475569; }
+  .wrap { position: relative; display: inline-block; max-width: 100%; }
+  .wrap img { display: block; max-width: 100%; height: auto; }
+  .cell { position: absolute; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
+  .cell:hover { background: rgba(37, 99, 235, .15); outline: 3px solid #2563eb; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 10px 16px; border-radius: 10px; background: #0f172a; color: #fff; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style></head><body>
+<p class="hint">표정을 누르면 <b>@표정명</b>이 복사돼요.</p>
+<div class="wrap" id="wrap"><img src="${cvs.toDataURL('image/png')}" alt=""></div>
+<div class="toast" id="toast"></div>
+<script>
+  const cells = ${data};
+  const wrap = document.getElementById('wrap');
+  const toast = document.getElementById('toast');
+  let timer = null;
+  const show = (msg) => { toast.textContent = msg; toast.classList.add('show'); clearTimeout(timer); timer = setTimeout(() => toast.classList.remove('show'), 1400); };
+  const copy = async (text) => {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    }
+  };
+  cells.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'cell';
+    b.title = '@' + c.name;
+    b.style.left = c.left + '%'; b.style.top = c.top + '%'; b.style.width = c.width + '%'; b.style.height = c.height + '%';
+    b.onclick = async () => show((await copy('@' + c.name)) ? '@' + c.name + ' 복사됨' : '복사하지 못했어요');
+    wrap.appendChild(b);
+  });
+<\/script></body></html>`);
+        win.document.close();
+    });
+
     document.getElementById('btnDownloadCollagePieces').addEventListener('click', async () => {
         const items = document.querySelectorAll('.collage-item');
         if (items.length === 0) {
